@@ -31,4 +31,17 @@ export interface StoreSettings {
   shippingCost?: number;
   /** @nullable */
   freeShippingThreshold?: number | null;
+  servicesSectionTitle?: string;
+  flexyTitle?: string;
+  flexyDescription?: string;
+  flexyButtonText?: string;
+  /** @nullable */
+  flexyUrl?: string | null;
+  flexyEnabled?: boolean;
+  paymentTitle?: string;
+  paymentDescription?: string;
+  paymentButtonText?: string;
+  /** @nullable */
+  paymentUrl?: string | null;
+  paymentEnabled?: boolean;
 }

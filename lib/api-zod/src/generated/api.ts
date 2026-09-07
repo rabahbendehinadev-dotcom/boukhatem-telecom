@@ -1205,7 +1205,18 @@ export const GetSettingsResponse = zod.object({
   "metaTitle": zod.string().nullish(),
   "metaDescription": zod.string().nullish(),
   "shippingCost": zod.number().optional(),
-  "freeShippingThreshold": zod.number().nullish()
+  "freeShippingThreshold": zod.number().nullish(),
+  "servicesSectionTitle": zod.string().optional(),
+  "flexyTitle": zod.string().optional(),
+  "flexyDescription": zod.string().optional(),
+  "flexyButtonText": zod.string().optional(),
+  "flexyUrl": zod.string().nullish(),
+  "flexyEnabled": zod.boolean().optional(),
+  "paymentTitle": zod.string().optional(),
+  "paymentDescription": zod.string().optional(),
+  "paymentButtonText": zod.string().optional(),
+  "paymentUrl": zod.string().nullish(),
+  "paymentEnabled": zod.boolean().optional()
 })
 
 
@@ -1224,6 +1235,17 @@ export const UpdateSettingsBody = zod.object({
   "whatsapp": zod.string().optional(),
   "metaTitle": zod.string().optional(),
   "metaDescription": zod.string().optional(),
+  "servicesSectionTitle": zod.string().optional(),
+  "flexyTitle": zod.string().optional(),
+  "flexyDescription": zod.string().optional(),
+  "flexyButtonText": zod.string().optional(),
+  "flexyUrl": zod.string().nullish(),
+  "flexyEnabled": zod.boolean().optional(),
+  "paymentTitle": zod.string().optional(),
+  "paymentDescription": zod.string().optional(),
+  "paymentButtonText": zod.string().optional(),
+  "paymentUrl": zod.string().nullish(),
+  "paymentEnabled": zod.boolean().optional(),
   "shippingCost": zod.number().optional(),
   "freeShippingThreshold": zod.number().optional()
 })
@@ -1241,7 +1263,18 @@ export const UpdateSettingsResponse = zod.object({
   "metaTitle": zod.string().nullish(),
   "metaDescription": zod.string().nullish(),
   "shippingCost": zod.number().optional(),
-  "freeShippingThreshold": zod.number().nullish()
+  "freeShippingThreshold": zod.number().nullish(),
+  "servicesSectionTitle": zod.string().optional(),
+  "flexyTitle": zod.string().optional(),
+  "flexyDescription": zod.string().optional(),
+  "flexyButtonText": zod.string().optional(),
+  "flexyUrl": zod.string().nullish(),
+  "flexyEnabled": zod.boolean().optional(),
+  "paymentTitle": zod.string().optional(),
+  "paymentDescription": zod.string().optional(),
+  "paymentButtonText": zod.string().optional(),
+  "paymentUrl": zod.string().nullish(),
+  "paymentEnabled": zod.boolean().optional()
 })
 
 

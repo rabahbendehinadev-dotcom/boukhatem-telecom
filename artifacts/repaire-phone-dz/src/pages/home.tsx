@@ -7,13 +7,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   ArrowRight, ChevronRight, Star, ShoppingCart, Heart,
-  ShieldCheck, Zap, Wrench, Package, Tag,
+  ShieldCheck, Zap, Wrench, Package, Tag, Smartphone, CreditCard, Download, ExternalLink,
 } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { useEffect, useCallback } from 'react';
 import { useCart } from '@/hooks/use-cart-store';
 import { useWishlist } from '@/hooks/use-wishlist';
 import { toast } from 'sonner';
+import { useStoreSettings } from '@/hooks/use-store-settings';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -235,6 +236,7 @@ function Section({
 export default function Home() {
   const { data: banners, isLoading: loadingBanners } = useListBanners();
   const { data: homepage, isLoading: loadingHomepage } = useHomepage();
+  const { settings } = useStoreSettings();
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
@@ -248,6 +250,37 @@ export default function Home() {
 
   const { featuredProducts = [], newProducts = [], promotionalProducts = [], popularCategories = [] } =
     homepage ?? {};
+  const quickServices = [
+    settings?.flexyEnabled && settings.flexyUrl ? {
+      key: 'flexy',
+      title: settings.flexyTitle,
+      description: settings.flexyDescription,
+      buttonText: settings.flexyButtonText,
+      url: settings.flexyUrl,
+      icon: Smartphone,
+      actionIcon: Download,
+      accent: 'primary',
+    } : null,
+    settings?.paymentEnabled && settings.paymentUrl ? {
+      key: 'payment',
+      title: settings.paymentTitle,
+      description: settings.paymentDescription,
+      buttonText: settings.paymentButtonText,
+      url: settings.paymentUrl,
+      icon: CreditCard,
+      actionIcon: ExternalLink,
+      accent: 'secondary',
+    } : null,
+  ].filter(Boolean) as Array<{
+    key: string;
+    title: string;
+    description: string;
+    buttonText: string;
+    url: string;
+    icon: typeof Smartphone;
+    actionIcon: typeof Download;
+    accent: 'primary' | 'secondary';
+  }>;
 
   return (
     <div className="flex flex-col gap-10 md:gap-16 pb-10">
@@ -380,6 +413,40 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {quickServices.length > 0 && (
+        <Section title={settings?.servicesSectionTitle || 'Nos services en ligne'}>
+          <div className={`grid gap-4 md:gap-6 ${quickServices.length > 1 ? 'md:grid-cols-2' : 'max-w-2xl'}`}>
+            {quickServices.map((service) => {
+              const Icon = service.icon;
+              const ActionIcon = service.actionIcon;
+              const isPrimary = service.accent === 'primary';
+              return (
+                <Card
+                  key={service.key}
+                  className="group overflow-hidden border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl"
+                >
+                  <CardContent className="flex h-full flex-col gap-5 p-6 sm:flex-row sm:items-center md:p-8">
+                    <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl ${isPrimary ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'}`}>
+                      <Icon className="h-8 w-8" />
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <h3 className="text-xl font-extrabold tracking-tight text-foreground">{service.title}</h3>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{service.description}</p>
+                      <Button asChild className={`mt-5 w-full sm:w-fit ${isPrimary ? 'bg-primary hover:bg-primary/90' : 'bg-secondary hover:bg-secondary/90'} text-white`}>
+                        <a href={service.url} target="_blank" rel="noopener noreferrer">
+                          {service.buttonText}
+                          <ActionIcon className="ml-2 h-4 w-4" />
+                        </a>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </Section>
+      )}
 
       {/* ── 3. Catégories Populaires ────────────────────────────────────── */}
       <Section title="Catégories Populaires" linkHref="/categories" linkLabel="Tout voir">

@@ -2045,6 +2045,28 @@ components:
           type: number
         freeShippingThreshold:
           type: ["number", "null"]
+        servicesSectionTitle:
+          type: string
+        flexyTitle:
+          type: string
+        flexyDescription:
+          type: string
+        flexyButtonText:
+          type: string
+        flexyUrl:
+          type: ["string", "null"]
+        flexyEnabled:
+          type: boolean
+        paymentTitle:
+          type: string
+        paymentDescription:
+          type: string
+        paymentButtonText:
+          type: string
+        paymentUrl:
+          type: ["string", "null"]
+        paymentEnabled:
+          type: boolean
 
     StoreSettingsUpdate:
       type: object
@@ -2071,6 +2093,28 @@ components:
           type: string
         metaDescription:
           type: string
+        servicesSectionTitle:
+          type: string
+        flexyTitle:
+          type: string
+        flexyDescription:
+          type: string
+        flexyButtonText:
+          type: string
+        flexyUrl:
+          type: ["string", "null"]
+        flexyEnabled:
+          type: boolean
+        paymentTitle:
+          type: string
+        paymentDescription:
+          type: string
+        paymentButtonText:
+          type: string
+        paymentUrl:
+          type: ["string", "null"]
+        paymentEnabled:
+          type: boolean
         shippingCost:
           type: number
         freeShippingThreshold:

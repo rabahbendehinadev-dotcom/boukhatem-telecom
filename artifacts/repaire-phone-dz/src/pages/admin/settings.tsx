@@ -11,10 +11,34 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { Store, Phone, Mail, MapPin, Share2, Search, Truck, Lock, CreditCard, Wifi, CheckCircle2, XCircle, Package } from 'lucide-react';
+import { Store, Phone, Mail, MapPin, Share2, Search, Truck, Lock, CreditCard, Wifi, CheckCircle2, XCircle, Package, Smartphone, Link2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { useQueryClient } from '@tanstack/react-query';
 import { getGetSettingsQueryKey } from '@workspace/api-client-react';
+
+const optionalHttpUrl = z.string()
+  .refine((value) => value === '' || /^https?:\/\//i.test(value), "L'URL doit commencer par http:// ou https://")
+  .refine((value) => {
+    if (value === '') return true;
+    try {
+      new URL(value);
+      return true;
+    } catch {
+      return false;
+    }
+  }, "URL invalide");
+const optionalHttpsUrl = z.string()
+  .refine((value) => value === '' || /^https:\/\//i.test(value), "L'URL de paiement doit commencer par https://")
+  .refine((value) => {
+    if (value === '') return true;
+    try {
+      new URL(value);
+      return true;
+    } catch {
+      return false;
+    }
+  }, "URL invalide");
 
 const settingsSchema = z.object({
   storeName: z.string().min(2, "Le nom est requis"),
@@ -30,6 +54,17 @@ const settingsSchema = z.object({
   metaDescription: z.string().optional(),
   shippingCost: z.coerce.number().min(0).default(0),
   freeShippingThreshold: z.coerce.number().min(0).optional().nullable(),
+  servicesSectionTitle: z.string().min(2, "Le titre est requis"),
+  flexyTitle: z.string().min(2, "Le titre est requis"),
+  flexyDescription: z.string().min(2, "La description est requise"),
+  flexyButtonText: z.string().min(2, "Le texte du bouton est requis"),
+  flexyUrl: optionalHttpUrl,
+  flexyEnabled: z.boolean(),
+  paymentTitle: z.string().min(2, "Le titre est requis"),
+  paymentDescription: z.string().min(2, "La description est requise"),
+  paymentButtonText: z.string().min(2, "Le texte du bouton est requis"),
+  paymentUrl: optionalHttpsUrl,
+  paymentEnabled: z.boolean(),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -56,6 +91,17 @@ export default function AdminSettings() {
       metaDescription: '',
       shippingCost: 500,
       freeShippingThreshold: null,
+      servicesSectionTitle: 'Nos services en ligne',
+      flexyTitle: 'Application Flexy',
+      flexyDescription: 'Téléchargez notre application Flexy',
+      flexyButtonText: "Télécharger l'application",
+      flexyUrl: '',
+      flexyEnabled: false,
+      paymentTitle: 'Paiement en ligne',
+      paymentDescription: 'Payez rapidement et en toute sécurité',
+      paymentButtonText: 'Payer maintenant',
+      paymentUrl: '',
+      paymentEnabled: false,
     },
   });
 
@@ -75,6 +121,17 @@ export default function AdminSettings() {
         metaDescription: settings.metaDescription || '',
         shippingCost: settings.shippingCost || 0,
         freeShippingThreshold: settings.freeShippingThreshold,
+        servicesSectionTitle: settings.servicesSectionTitle ?? 'Nos services en ligne',
+        flexyTitle: settings.flexyTitle ?? 'Application Flexy',
+        flexyDescription: settings.flexyDescription ?? 'Téléchargez notre application Flexy',
+        flexyButtonText: settings.flexyButtonText ?? "Télécharger l'application",
+        flexyUrl: settings.flexyUrl || '',
+        flexyEnabled: settings.flexyEnabled ?? false,
+        paymentTitle: settings.paymentTitle ?? 'Paiement en ligne',
+        paymentDescription: settings.paymentDescription ?? 'Payez rapidement et en toute sécurité',
+        paymentButtonText: settings.paymentButtonText ?? 'Payer maintenant',
+        paymentUrl: settings.paymentUrl || '',
+        paymentEnabled: settings.paymentEnabled ?? false,
       });
     }
   }, [settings, form]);
@@ -89,6 +146,8 @@ export default function AdminSettings() {
         facebook: data.facebook || undefined,
         instagram: data.instagram || undefined,
         freeShippingThreshold: data.freeShippingThreshold || null,
+        flexyUrl: data.flexyUrl || null,
+        paymentUrl: data.paymentUrl || null,
       };
       
       await updateSettings.mutateAsync({ data: payload as any });
@@ -156,6 +215,9 @@ export default function AdminSettings() {
             </TabsTrigger>
             <TabsTrigger value="shipping" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none h-full px-6">
               <Truck className="h-4 w-4 mr-2" /> Livraison & Paiement
+            </TabsTrigger>
+            <TabsTrigger value="services" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none h-full px-6">
+              <Link2 className="h-4 w-4 mr-2" /> Liens & Services
             </TabsTrigger>
             <TabsTrigger value="seo" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none h-full px-6">
               <Search className="h-4 w-4 mr-2" /> SEO
@@ -400,6 +462,104 @@ export default function AdminSettings() {
                   <div className="pt-4 flex justify-end max-w-xl">
                     <Button type="submit" disabled={updateSettings.isPending}>
                       {updateSettings.isPending ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="services" className="mt-0 outline-none">
+              <Card className="border-border shadow-sm">
+                <CardHeader>
+                  <CardTitle>Liens & Services</CardTitle>
+                  <CardDescription>Gérez les services rapides affichés sur la page d'accueil.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-8">
+                  <FormField
+                    control={form.control}
+                    name="servicesSectionTitle"
+                    render={({ field }) => (
+                      <FormItem className="max-w-xl">
+                        <FormLabel>Titre de la section</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid gap-6 xl:grid-cols-2">
+                    <Card className="border-primary/20 bg-primary/[0.03]">
+                      <CardHeader>
+                        <div className="flex items-center justify-between gap-4">
+                          <CardTitle className="flex items-center gap-2 text-lg"><Smartphone className="h-5 w-5 text-primary" /> Application Flexy</CardTitle>
+                          <FormField
+                            control={form.control}
+                            name="flexyEnabled"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center gap-2 space-y-0">
+                                <FormLabel>Active</FormLabel>
+                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {(['flexyTitle', 'flexyDescription', 'flexyButtonText', 'flexyUrl'] as const).map((name) => (
+                          <FormField
+                            key={name}
+                            control={form.control}
+                            name={name}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{name === 'flexyTitle' ? 'Titre' : name === 'flexyDescription' ? 'Description' : name === 'flexyButtonText' ? 'Texte du bouton' : 'Flexy App URL'}</FormLabel>
+                                <FormControl><Input type={name === 'flexyUrl' ? 'url' : 'text'} placeholder={name === 'flexyUrl' ? 'https://...' : undefined} {...field} /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        ))}
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-secondary/20 bg-secondary/[0.03]">
+                      <CardHeader>
+                        <div className="flex items-center justify-between gap-4">
+                          <CardTitle className="flex items-center gap-2 text-lg"><CreditCard className="h-5 w-5 text-secondary" /> Paiement en ligne</CardTitle>
+                          <FormField
+                            control={form.control}
+                            name="paymentEnabled"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center gap-2 space-y-0">
+                                <FormLabel>Actif</FormLabel>
+                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {(['paymentTitle', 'paymentDescription', 'paymentButtonText', 'paymentUrl'] as const).map((name) => (
+                          <FormField
+                            key={name}
+                            control={form.control}
+                            name={name}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{name === 'paymentTitle' ? 'Titre' : name === 'paymentDescription' ? 'Description' : name === 'paymentButtonText' ? 'Texte du bouton' : 'Payment URL'}</FormLabel>
+                                <FormControl><Input type={name === 'paymentUrl' ? 'url' : 'text'} placeholder={name === 'paymentUrl' ? 'https://...' : undefined} {...field} /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        ))}
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={updateSettings.isPending}>
+                      {updateSettings.isPending ? 'Enregistrement...' : 'Enregistrer'}
                     </Button>
                   </div>
                 </CardContent>

@@ -39,6 +39,19 @@ async function runSafeMigrations() {
     await db.execute(sql`ALTER TABLE shipping_rates ADD COLUMN IF NOT EXISTS office_delivery_enabled boolean NOT NULL DEFAULT true`);
     await db.execute(sql`ALTER TABLE shipping_rates ADD COLUMN IF NOT EXISTS office_delivery_price numeric(10,2) NOT NULL DEFAULT 0`);
 
+    // Storefront quick services managed from admin settings
+    await db.execute(sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS services_section_title text NOT NULL DEFAULT 'Nos services en ligne'`);
+    await db.execute(sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS flexy_title text NOT NULL DEFAULT 'Application Flexy'`);
+    await db.execute(sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS flexy_description text NOT NULL DEFAULT 'Téléchargez notre application Flexy'`);
+    await db.execute(sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS flexy_button_text text NOT NULL DEFAULT 'Télécharger l''application'`);
+    await db.execute(sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS flexy_url text`);
+    await db.execute(sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS flexy_enabled boolean NOT NULL DEFAULT false`);
+    await db.execute(sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS payment_title text NOT NULL DEFAULT 'Paiement en ligne'`);
+    await db.execute(sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS payment_description text NOT NULL DEFAULT 'Payez rapidement et en toute sécurité'`);
+    await db.execute(sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS payment_button_text text NOT NULL DEFAULT 'Payer maintenant'`);
+    await db.execute(sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS payment_url text`);
+    await db.execute(sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS payment_enabled boolean NOT NULL DEFAULT false`);
+
     logger.info("Safe migrations applied successfully");
   } catch (err) {
     logger.error({ err }, "Safe migrations failed — server will still start");
