@@ -1,0 +1,4 @@
+- [Admin Auth Architecture](admin-auth-architecture.md) — separate HttpOnly cookie admin auth vs JWT storefront auth; all admin routes migrated; Super Admin seeded.
+- [Shipping System v2](shipping-system-v2.md) — one table, two types (home/office), no offices UI; column rename stop_desk→office_delivery in migration 0004; baseOrderCols guard removed.
+- [Dropdown Menu Component](dropdown-menu-completeness.md) — original shadcn dropdown-menu.tsx was stripped to 4 exports; must have full set including Separator, Label, etc.
+- [Theme Hook JSX Extension](theme-hook-jsx.md) — use-theme must be .tsx (not .ts) because it returns JSX; Vite caches the extension so workflow restart needed after rename.

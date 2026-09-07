@@ -1,0 +1,48 @@
+import { Router, type IRouter } from "express";
+import healthRouter from "./health";
+import storageRouter from "./storage";
+import uploadsRouter from "./uploads";
+import authRouter from "./auth";
+import categoriesRouter from "./categories";
+import brandsRouter from "./brands";
+import productsRouter from "./products";
+import reviewsRouter from "./reviews";
+import cartRouter from "./cart";
+import wishlistRouter from "./wishlist";
+import ordersRouter from "./orders";
+import couponsRouter from "./coupons";
+import bannersRouter from "./banners";
+import settingsRouter from "./settings";
+import adminRouter from "./admin";
+import adminAuthRouter from "./admin-auth";
+import adminUsersRouter from "./admin-users";
+import adminActivityRouter from "./admin-activity";
+import noestRouter from "./noest";
+import shippingRouter from "./shipping";
+import homepageRouter from "./homepage";
+
+const router: IRouter = Router();
+
+router.use(healthRouter);
+router.use(storageRouter);
+router.use(uploadsRouter);
+router.use(authRouter);
+router.use(categoriesRouter);
+router.use(brandsRouter);
+router.use(productsRouter);
+router.use(reviewsRouter);
+router.use(cartRouter);
+router.use(wishlistRouter);
+router.use(ordersRouter);
+router.use(couponsRouter);
+router.use(bannersRouter);
+router.use(settingsRouter);
+router.use(adminRouter);
+router.use(adminAuthRouter);
+router.use(adminUsersRouter);
+router.use(adminActivityRouter);
+router.use(noestRouter);
+router.use(shippingRouter);
+router.use(homepageRouter);
+
+export default router;

@@ -1,0 +1,55 @@
+# ── Dependencies (rebuilt inside Docker) ──────────────────────────────────────
+node_modules
+**/node_modules
+
+# ── Build outputs (rebuilt inside Docker) ─────────────────────────────────────
+**/dist
+**/.expo
+**/.expo-shared
+**/*.tsbuildinfo
+
+# ── Secrets & environment ──────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Replit-specific ────────────────────────────────────────────────────────────
+.replit
+.replitignore
+.cache
+.local
+.agents
+.config
+
+# ── Development tools ──────────────────────────────────────────────────────────
+artifacts/mockup-sandbox
+artifacts/repaire-phone-dz-mobile
+
+# ── Uploads & user data (never baked into image) ──────────────────────────────
+uploads
+backups
+logs
+*.log
+
+# ── Database dumps ────────────────────────────────────────────────────────────
+*.sql
+*.dump
+*.backup
+# Re-include migration SQL files AFTER the *.sql exclusion — later rules win
+# in .dockerignore, so this exception must come after the glob it overrides.
+!lib/db/migrations/**.sql
+
+# ── Attached assets (Replit uploads) ─────────────────────────────────────────
+attached_assets
+
+# ── Git ────────────────────────────────────────────────────────────────────────
+.git
+.gitignore
+
+# ── OS & editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+*.swp
+*.swo

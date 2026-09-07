@@ -1,0 +1,30 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      # ── Required ────────────────────────────────────────────────────────────
+      DATABASE_URL: ${DATABASE_URL}
+      SESSION_SECRET: ${SESSION_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      # ── Google Cloud Storage (object uploads) ─────────────────────────────
+      DEFAULT_OBJECT_STORAGE_BUCKET_ID: ${DEFAULT_OBJECT_STORAGE_BUCKET_ID}
+      PRIVATE_OBJECT_DIR: ${PRIVATE_OBJECT_DIR:-uploads/private}
+      PUBLIC_OBJECT_SEARCH_PATHS: ${PUBLIC_OBJECT_SEARCH_PATHS:-uploads/public}
+      # Set ONE of the following for GCS authentication:
+      # Option A — inline JSON key (recommended for Dokploy)
+      GCP_SERVICE_ACCOUNT_KEY: ${GCP_SERVICE_ACCOUNT_KEY:-}
+      # Option B — path to mounted key file
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/api/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

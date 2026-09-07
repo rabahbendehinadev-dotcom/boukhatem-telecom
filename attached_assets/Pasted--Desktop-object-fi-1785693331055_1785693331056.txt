@@ -1,0 +1,96 @@
+المشكل مازال موجود في بانر الهاتف.
+
+حاليًا صورة Desktop مازالت تتعرض على الهاتف باستعمال object-fit: cover، ولهذا الصورة تتكبر وتتقص، والنص والعناصر المهمة لا تظهر كاملة.
+
+أريد إصلاحًا نهائيًا كالتالي:
+
+1. أضف في لوحة الإدارة حقلين منفصلين:
+
+- Image Desktop
+- Image Mobile
+
+2. استعمل المقاسات التالية:
+
+Desktop:
+1920 × 700 px
+
+Mobile:
+1080 × 1080 px
+أو 1080 × 1200 px
+
+3. لا تستعمل صورة Desktop على الهاتف إذا كانت صورة Mobile موجودة.
+
+استعمل عنصر picture بهذا الشكل:
+
+<picture>
+  <source
+    media="(max-width: 768px)"
+    srcSet={getMediaUrl(banner.mobileImageUrl)}
+  />
+  <img
+    src={getMediaUrl(banner.desktopImageUrl)}
+    alt={banner.title}
+  />
+</picture>
+
+4. على الهاتف استعمل:
+
+object-fit: cover;
+object-position: center;
+
+لكن فقط مع صورة Mobile المخصصة.
+
+5. لا تجعل ارتفاع البانر على الهاتف أكبر من اللازم.
+
+استعمل مثلًا:
+
+.banner-mobile {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  min-height: 360px;
+  max-height: 520px;
+  overflow: hidden;
+}
+
+6. الصورة الحالية تحتوي أصلًا على النصوص التالية:
+
+COMING SOON
+أدوات التصليح
+
+لهذا أخفِ النص والزر المضافين من الموقع فوق الصورة.
+
+أضف في لوحة الإدارة خيارات:
+
+- Afficher le titre sur desktop
+- Afficher le titre sur mobile
+- Afficher le bouton sur desktop
+- Afficher le bouton sur mobile
+
+وبالنسبة لهذا البانر اجعلها معطلة على الهاتف:
+
+Afficher le titre sur mobile = false
+Afficher le bouton sur mobile = false
+
+7. لا تعرض عنوان COMING SOON أو زر Découvrir فوق الصورة في الهاتف، لأنهما موجودان أصلًا داخل التصميم.
+
+8. أضف معاينة حقيقية للهاتف داخل لوحة الإدارة بمقاس 390px قبل الحفظ، حتى أرى كيف سيظهر البانر على الهاتف.
+
+9. تأكد أن React يستعمل mobileImageUrl فعليًا داخل الصفحة الرئيسية، وليس desktopImageUrl في الحالتين.
+
+10. اختبر في DevTools على:
+
+- 320px
+- 375px
+- 390px
+- 430px
+
+النتيجة المطلوبة:
+
+- الصورة كاملة وواضحة.
+- الشخصية والمنتجات والنصوص المهمة تظهر بدون قص.
+- لا يوجد تكرار لعنوان COMING SOON.
+- لا يوجد تكرار للزر.
+- لا يوجد Zoom مبالغ فيه.
+- لا يوجد تمدد أو تشوه للصورة.
+
+لا تعتبر المهمة مكتملة حتى تريني في الكود أن mobileImageUrl هو الذي يُستعمل فعليًا على الشاشات الأقل من 768px.

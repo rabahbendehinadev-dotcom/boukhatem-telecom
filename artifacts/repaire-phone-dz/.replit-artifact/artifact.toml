@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "BOUKHATEM TELECOM"
+description = "متجر إلكتروني احترافي لبيع معدات وأدوات وقطع غيار إصلاح الهواتف في الجزائر. يتضمن تصميمًا Mobile-First متكاملًا، لوحة تحكم إدارية شاملة، إدارة المنتجات والتصنيفات والطلبات والعملاء، مع نظام سلة مشتريات وكوبونات وعروض."
+version = "1.0.0"
+id = "artifacts/repaire-phone-dz"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23392
+
+[services.development]
+run = "pnpm --filter @workspace/repaire-phone-dz run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/repaire-phone-dz", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/repaire-phone-dz/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23392"
+BASE_PATH = "/"
