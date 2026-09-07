@@ -224,7 +224,11 @@ function AdminSidebar() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <LayoutDashboard className="h-5 w-5" />
           </div>
-          <span className="truncate">Repair<span className="text-secondary">DZ</span></span>
+          <img
+            src={`${import.meta.env.BASE_URL}boukhatem-telecom-logo.svg`}
+            alt="BOUKHATEM TELECOM"
+            className="h-9 w-auto max-w-[150px] object-contain"
+          />
         </Link>
       </SidebarHeader>
       
@@ -268,6 +272,10 @@ interface AdminLayoutProps {
 export function AdminLayout({ children }: AdminLayoutProps) {
   const { adminUser, isLoading, logout } = useAdminAuth();
   const [location, setLocation] = useLocation();
+
+  useEffect(() => {
+    document.title = 'Administration | BOUKHATEM TELECOM';
+  }, [location]);
 
   useEffect(() => {
     if (!isLoading && !adminUser) {

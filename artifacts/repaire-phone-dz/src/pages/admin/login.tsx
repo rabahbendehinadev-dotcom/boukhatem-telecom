@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAdminAuth } from '@/hooks/use-admin-auth';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,10 @@ export default function AdminLogin() {
   
   const { login } = useAdminAuth();
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    document.title = 'Connexion Administration | BOUKHATEM TELECOM';
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,10 +48,11 @@ export default function AdminLogin() {
       <div className="relative z-10 w-full max-w-md p-8 md:p-10 bg-card text-card-foreground rounded-2xl shadow-2xl border border-border/50">
         <div className="flex flex-col items-center mb-8">
           <div className="h-16 mb-4 flex items-center justify-center">
-            {/* Using the attached logo or fallback text */}
-            <span className="font-extrabold text-3xl tracking-tight text-primary">
-              Repair<span className="text-secondary">DZ</span>
-            </span>
+            <img
+              src={`${import.meta.env.BASE_URL}boukhatem-telecom-logo.svg`}
+              alt="BOUKHATEM TELECOM"
+              className="h-16 w-auto max-w-full object-contain"
+            />
           </div>
           <h1 className="text-2xl font-bold text-foreground">Accès Administration</h1>
           <p className="text-sm text-muted-foreground mt-2">Connectez-vous pour gérer votre boutique</p>
@@ -63,7 +68,7 @@ export default function AdminLogin() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@repairphone.dz"
+                placeholder="waribls31@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
