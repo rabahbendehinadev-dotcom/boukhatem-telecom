@@ -42,9 +42,11 @@ export default function Register() {
         
         <div className="relative z-10">
           <Link href="/">
-            <span className="font-extrabold text-3xl tracking-tight text-primary cursor-pointer inline-block mb-12">
-              Repair<span className="text-secondary">DZ</span>
-            </span>
+            <img
+              src={`${import.meta.env.BASE_URL}boukhatem-telecom-logo.svg`}
+              alt="BOUKHATEM TELECOM"
+              className="h-14 w-auto max-w-[240px] rounded-lg bg-white px-3 py-2 object-contain mb-12"
+            />
           </Link>
           <h2 className="text-4xl lg:text-5xl font-extrabold leading-tight mb-6">
             Rejoignez la communauté des réparateurs.
@@ -71,9 +73,11 @@ export default function Register() {
         <div className="w-full max-w-md">
           <div className="lg:hidden mb-10 text-center">
             <Link href="/">
-              <span className="font-extrabold text-3xl tracking-tight text-primary cursor-pointer inline-block">
-                Repair<span className="text-secondary">DZ</span>
-              </span>
+              <img
+                src={`${import.meta.env.BASE_URL}boukhatem-telecom-logo.svg`}
+                alt="BOUKHATEM TELECOM"
+                className="mx-auto h-14 w-auto max-w-[240px] object-contain"
+              />
             </Link>
           </div>
           
