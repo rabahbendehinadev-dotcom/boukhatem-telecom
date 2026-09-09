@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useCart } from '@/hooks/use-cart-store';
 import { useAuth } from '@/hooks/use-auth';
@@ -6,6 +6,7 @@ import { useCreateOrder } from '@workspace/api-client-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,20 +18,17 @@ import { toast } from 'sonner';
 import { CheckCircle2, Package, MapPin, CreditCard, Truck, Banknote, AlertCircle, Upload, Copy, Home, Building2, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const WILAYAS = [
-  "01 - Adrar", "02 - Chlef", "03 - Laghouat", "04 - Oum El Bouaghi", "05 - Batna",
-  "06 - Béjaïa", "07 - Biskra", "08 - Béchar", "09 - Blida", "10 - Bouira",
-  "11 - Tamanrasset", "12 - Tébessa", "13 - Tlemcen", "14 - Tiaret", "15 - Tizi Ouzou",
-  "16 - Alger", "17 - Djelfa", "18 - Jijel", "19 - Sétif", "20 - Saïda",
-  "21 - Skikda", "22 - Sidi Bel Abbès", "23 - Annaba", "24 - Guelma", "25 - Constantine",
-  "26 - Médéa", "27 - Mostaganem", "28 - M'Sila", "29 - Mascara", "30 - Ouargla",
-  "31 - Oran", "32 - El Bayadh", "33 - Illizi", "34 - Bordj Bou Arreridj", "35 - Boumerdès",
-  "36 - El Tarf", "37 - Tindouf", "38 - Tissemsilt", "39 - El Oued", "40 - Khenchela",
-  "41 - Souk Ahras", "42 - Tipaza", "43 - Mila", "44 - Aïn Defla", "45 - Naâma",
-  "46 - Aïn Témouchent", "47 - Ghardaïa", "48 - Relizane", "49 - Timimoun", "50 - Bordj Badji Mokhtar",
-  "51 - Ouled Djellal", "52 - Béni Abbès", "53 - In Salah", "54 - In Guezzam", "55 - Touggourt",
-  "56 - Djanet", "57 - El M'Ghair", "58 - El Meniaa",
-];
+type ShippingRate = {
+  wilayaCode: string;
+  wilayaName: string;
+  isActive: boolean;
+  homeDeliveryEnabled: boolean;
+  homeDeliveryPrice: number;
+  officeDeliveryEnabled: boolean;
+  officeDeliveryPrice: number;
+  minDeliveryDays: number;
+  maxDeliveryDays: number;
+};
 
 const BANK_DETAILS = {
   bankName: "BNA - Banque Nationale d'Algérie",
@@ -50,7 +48,7 @@ const checkoutSchema = z.object({
 });
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
-type DeliveryType = 'home' | 'office';
+type DeliveryType = 'home' | 'office' | null;
 type PaymentMethod = 'cash_on_delivery' | 'bank_transfer' | 'cib_edahabia';
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string; description: string; icon: React.ReactNode; badge?: string }[] = [
@@ -86,21 +84,62 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash_on_delivery');
   const [proofUrl, setProofUrl] = useState('');
   const [proofSubmitted, setProofSubmitted] = useState(false);
-  const [selectedDeliveryType, setSelectedDeliveryType] = useState<DeliveryType>('home');
+  const [selectedDeliveryType, setSelectedDeliveryType] = useState<DeliveryType>(null);
   const [deliveryTypeError, setDeliveryTypeError] = useState(false);
   const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
   const deliverySectionRef = useRef<HTMLDivElement>(null);
+
+  const { data: shippingData, isLoading: isLoadingShipping, isError: isErrorShipping, refetch: refetchShipping } = useQuery({
+    queryKey: ['active-shipping-rates'],
+    queryFn: async () => {
+      const res = await fetch('/api/shipping-rates/active');
+      if (!res.ok) throw new Error('Erreur de chargement des tarifs');
+      return res.json() as Promise<{ wilayas: ShippingRate[] }>;
+    },
+    retry: 2,
+  });
+
+  const activeWilayas = shippingData?.wilayas || [];
 
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: { fullName: '', phone: '', wilaya: '', commune: '', address: '', preferredOfficeName: '', notes: '' },
   });
 
+  const selectedWilaya = form.watch('wilaya');
+  const selectedRate = activeWilayas.find(w => `${w.wilayaCode} - ${w.wilayaName}` === selectedWilaya);
+
+  useEffect(() => {
+    if (selectedRate) {
+      const isHomeValid = selectedRate.homeDeliveryEnabled;
+      const isOfficeValid = selectedRate.officeDeliveryEnabled;
+
+      if (selectedDeliveryType === 'home' && !isHomeValid) {
+        setSelectedDeliveryType(isOfficeValid ? 'office' : null);
+      } else if (selectedDeliveryType === 'office' && !isOfficeValid) {
+        setSelectedDeliveryType(isHomeValid ? 'home' : null);
+      } else if (!selectedDeliveryType) {
+        if (isHomeValid) setSelectedDeliveryType('home');
+        else if (isOfficeValid) setSelectedDeliveryType('office');
+      }
+    } else if (selectedDeliveryType) {
+      setSelectedDeliveryType(null);
+    }
+  }, [selectedRate, selectedDeliveryType]);
+
+  const shippingCost = (() => {
+    if (!selectedRate || !selectedDeliveryType) return 0;
+    if (selectedDeliveryType === 'home') return selectedRate.homeDeliveryPrice;
+    if (selectedDeliveryType === 'office') return selectedRate.officeDeliveryPrice;
+    return 0;
+  })();
+
   const displayTotal = (() => {
     if (!cart) return 0;
     return (Number(cart.subtotal) || 0)
       - (Number(cart.discount) || 0)
-      - (Number(cart.couponDiscount) || 0);
+      - (Number(cart.couponDiscount) || 0)
+      + shippingCost;
   })();
 
   const onSubmit = async (data: CheckoutFormValues) => {
@@ -195,12 +234,24 @@ export default function Checkout() {
     toast.success('Copié !');
   };
 
-  if (isLoading) return <div className="p-20 text-center">Chargement...</div>;
+  if (isLoading || isLoadingShipping) return <div className="p-20 text-center">Chargement...</div>;
+
+  if (isErrorShipping) {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center max-w-md">
+        <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+        <h2 className="text-xl font-bold mb-2">Erreur de connexion</h2>
+        <p className="text-muted-foreground mb-6">Impossible de charger les tarifs de livraison. Veuillez réessayer.</p>
+        <Button onClick={() => refetchShipping()}>Réessayer</Button>
+      </div>
+    );
+  }
 
   // ── Order confirmation screen ───────────────────────────────────────────────
   if (orderComplete) {
     const isHome = orderComplete.deliveryType === 'home';
     const isOffice = orderComplete.deliveryType === 'office';
+    const confirmedShipping = Number(orderComplete.shipping) || 0;
 
     return (
       <div className="container mx-auto px-4 py-20 max-w-2xl">
@@ -233,9 +284,12 @@ export default function Checkout() {
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-2 text-sm text-muted-foreground">
+            <div className="flex items-start gap-2 text-sm">
               <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary/60" />
-              <p>Les frais et détails de livraison seront confirmés par téléphone.</p>
+              <div className="text-muted-foreground">
+                <p>Vos frais de livraison pour <strong>{orderComplete.shippingAddress?.wilaya}</strong> sont de <strong>{confirmedShipping === 0 ? '0 DA (Gratuite)' : `${confirmedShipping.toLocaleString('fr-DZ')} DA`}</strong>.</p>
+                <p className="text-xs mt-1">Les détails exacts et l'expédition seront confirmés par téléphone.</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -374,54 +428,76 @@ export default function Checkout() {
 
                 <div className="space-y-3">
                   {/* Domicile */}
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedDeliveryType('home'); setDeliveryTypeError(false); }}
-                    className={cn(
-                      "w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all",
-                      selectedDeliveryType === 'home'
-                        ? "border-primary bg-primary/5"
-                        : "border-border bg-muted/20 hover:border-muted-foreground/30"
-                    )}
-                  >
-                    <div className={cn("h-12 w-12 rounded-full flex items-center justify-center shrink-0",
-                      selectedDeliveryType === 'home' ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>
-                      <Home className="h-6 w-6" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-base">Livraison à domicile</div>
-                      <div className="text-sm text-muted-foreground mt-0.5">La commande sera livrée à votre adresse.</div>
-                    </div>
-                    <div className={cn("h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center",
-                      selectedDeliveryType === 'home' ? "border-primary" : "border-muted-foreground/30")}>
-                      {selectedDeliveryType === 'home' && <div className="h-2.5 w-2.5 rounded-full bg-primary" />}
-                    </div>
-                  </button>
+                  {(!selectedRate || selectedRate.homeDeliveryEnabled) && (
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedDeliveryType('home'); setDeliveryTypeError(false); }}
+                      className={cn(
+                        "w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all",
+                        selectedDeliveryType === 'home'
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-muted/20 hover:border-muted-foreground/30"
+                      )}
+                    >
+                      <div className={cn("h-12 w-12 rounded-full flex items-center justify-center shrink-0",
+                        selectedDeliveryType === 'home' ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>
+                        <Home className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-base flex justify-between items-center">
+                          Livraison à domicile
+                          {selectedRate && (
+                            <span className="text-primary font-bold whitespace-nowrap ml-2">
+                              {selectedRate.homeDeliveryPrice === 0 ? 'Gratuite' : `${selectedRate.homeDeliveryPrice} DA`}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-0.5">
+                          {selectedRate ? `Délai estimé : ${selectedRate.minDeliveryDays}-${selectedRate.maxDeliveryDays} jours` : 'Sélectionnez une wilaya pour voir le tarif'}
+                        </div>
+                      </div>
+                      <div className={cn("h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center",
+                        selectedDeliveryType === 'home' ? "border-primary" : "border-muted-foreground/30")}>
+                        {selectedDeliveryType === 'home' && <div className="h-2.5 w-2.5 rounded-full bg-primary" />}
+                      </div>
+                    </button>
+                  )}
 
                   {/* Bureau */}
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedDeliveryType('office'); setDeliveryTypeError(false); }}
-                    className={cn(
-                      "w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all",
-                      selectedDeliveryType === 'office'
-                        ? "border-primary bg-primary/5"
-                        : "border-border bg-muted/20 hover:border-muted-foreground/30"
-                    )}
-                  >
-                    <div className={cn("h-12 w-12 rounded-full flex items-center justify-center shrink-0",
-                      selectedDeliveryType === 'office' ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>
-                      <Building2 className="h-6 w-6" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-base">Livraison au bureau</div>
-                      <div className="text-sm text-muted-foreground mt-0.5">Vous récupérerez la commande au bureau du transporteur.</div>
-                    </div>
-                    <div className={cn("h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center",
-                      selectedDeliveryType === 'office' ? "border-primary" : "border-muted-foreground/30")}>
-                      {selectedDeliveryType === 'office' && <div className="h-2.5 w-2.5 rounded-full bg-primary" />}
-                    </div>
-                  </button>
+                  {(!selectedRate || selectedRate.officeDeliveryEnabled) && (
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedDeliveryType('office'); setDeliveryTypeError(false); }}
+                      className={cn(
+                        "w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all",
+                        selectedDeliveryType === 'office'
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-muted/20 hover:border-muted-foreground/30"
+                      )}
+                    >
+                      <div className={cn("h-12 w-12 rounded-full flex items-center justify-center shrink-0",
+                        selectedDeliveryType === 'office' ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>
+                        <Building2 className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-base flex justify-between items-center">
+                          Livraison au bureau
+                          {selectedRate && (
+                            <span className="text-primary font-bold whitespace-nowrap ml-2">
+                              {selectedRate.officeDeliveryPrice === 0 ? 'Gratuite' : `${selectedRate.officeDeliveryPrice} DA`}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-0.5">
+                          {selectedRate ? 'Récupérez la commande au bureau du transporteur' : 'Sélectionnez une wilaya pour voir le tarif'}
+                        </div>
+                      </div>
+                      <div className={cn("h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center",
+                        selectedDeliveryType === 'office' ? "border-primary" : "border-muted-foreground/30")}>
+                        {selectedDeliveryType === 'office' && <div className="h-2.5 w-2.5 rounded-full bg-primary" />}
+                      </div>
+                    </button>
+                  )}
                 </div>
 
                 {deliveryTypeError && (
@@ -486,9 +562,10 @@ export default function Checkout() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="max-h-60">
-                            {WILAYAS.map(w => (
-                              <SelectItem key={w} value={w}>{w}</SelectItem>
-                            ))}
+                            {activeWilayas.map(w => {
+                              const val = `${w.wilayaCode} - ${w.wilayaName}`;
+                              return <SelectItem key={w.wilayaCode} value={val}>{val}</SelectItem>;
+                            })}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -496,8 +573,8 @@ export default function Checkout() {
                     )} />
                     <FormField control={form.control} name="commune" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Commune</FormLabel>
-                        <FormControl><Input placeholder="Votre commune" {...field} className="bg-muted/30 h-11" /></FormControl>
+                        <FormLabel>Commune <span className="text-destructive">*</span></FormLabel>
+                        <FormControl><Input placeholder="Votre commune" required aria-required="true" {...field} className="bg-muted/30 h-11" /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
@@ -511,6 +588,8 @@ export default function Checkout() {
                         <FormControl>
                           <Textarea
                             placeholder="Nom de rue, numéro de bâtiment, etc."
+                            required
+                            aria-required="true"
                             {...field}
                             className="bg-muted/30 resize-none"
                             rows={3}
@@ -681,15 +760,19 @@ export default function Checkout() {
                 )}
                 <div className="flex justify-between items-start gap-2">
                   <span className="text-muted-foreground">Livraison</span>
-                  <span className="text-right text-xs text-muted-foreground italic max-w-[160px]">
-                    Les frais de livraison seront confirmés par téléphone.
+                  <span className="text-right font-medium">
+                    {!selectedRate ? (
+                      <span className="text-xs text-muted-foreground italic">Sélectionnez une wilaya</span>
+                    ) : (
+                      shippingCost === 0 ? 'Gratuite' : `${shippingCost.toLocaleString('fr-DZ')} DA`
+                    )}
                   </span>
                 </div>
               </div>
 
               <div className="border-t border-border pt-4 mb-6">
                 <div className="flex justify-between items-end">
-                  <span className="font-bold text-foreground text-lg">Total (HT livraison)</span>
+                  <span className="font-bold text-foreground text-lg">Total</span>
                   <span className="font-extrabold text-2xl text-primary tracking-tight">{displayTotal.toLocaleString('fr-DZ')} DA</span>
                 </div>
               </div>

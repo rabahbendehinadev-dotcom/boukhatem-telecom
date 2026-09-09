@@ -25,7 +25,7 @@ interface ShippingRate {
 }
 
 type EditState = Partial<ShippingRate>;
-type Filter = 'all' | 'active' | 'inactive' | 'domicile' | 'bureau' | 'noprice';
+type Filter = 'all' | 'active' | 'inactive' | 'domicile' | 'bureau' | 'hasprice' | 'noprice';
 type BulkAction = '' | 'activate' | 'deactivate' | 'enable_home' | 'enable_office' | 'set_home_price' | 'set_office_price' | 'set_min_days' | 'set_max_days' | 'percent_change';
 
 const apiFetch = async (method: string, path: string, body?: any) => {
@@ -59,8 +59,12 @@ const FILTER_LABELS: Record<Filter, string> = {
   inactive: 'Inactives',
   domicile: 'Domicile disponible',
   bureau: 'Bureau disponible',
+  hasprice: 'Avec tarif',
   noprice: 'Sans tarif',
 };
+
+const hasConfiguredPrice = (rate: ShippingRate) =>
+  Number.isFinite(rate.homeDeliveryPrice) || Number.isFinite(rate.officeDeliveryPrice);
 
 function parseCsv(text: string): { rows: any[]; errors: string[] } {
   const lines = text.trim().split('\n');
@@ -136,7 +140,7 @@ export default function AdminShippingRates() {
     total: rates.length,
     active: rates.filter(r => r.isActive).length,
     inactive: rates.filter(r => !r.isActive).length,
-    noprice: rates.filter(r => !r.homeDeliveryPrice && !r.officeDeliveryPrice).length,
+    noprice: rates.filter(r => !hasConfiguredPrice(r)).length,
   }), [rates]);
 
   const filteredRates = useMemo(() => rates.filter(r => {
@@ -148,7 +152,8 @@ export default function AdminShippingRates() {
     if (filter === 'inactive') return !r.isActive;
     if (filter === 'domicile') return r.homeDeliveryEnabled;
     if (filter === 'bureau') return r.officeDeliveryEnabled;
-    if (filter === 'noprice') return !r.homeDeliveryPrice && !r.officeDeliveryPrice;
+    if (filter === 'hasprice') return hasConfiguredPrice(r);
+    if (filter === 'noprice') return !hasConfiguredPrice(r);
     return true;
   }), [rates, search, filter]);
 

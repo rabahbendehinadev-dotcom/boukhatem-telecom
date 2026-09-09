@@ -63,6 +63,7 @@ const navGroups = [
   {
     title: 'Livraison',
     items: [
+      { label: 'Tarifs de livraison', href: '/admin/shipping-rates', icon: Truck },
     ]
   },
   {
