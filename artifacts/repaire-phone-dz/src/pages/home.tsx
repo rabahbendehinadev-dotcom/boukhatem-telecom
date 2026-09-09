@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   ArrowRight, ChevronRight, Star, ShoppingCart, Heart,
-  ShieldCheck, Zap, Wrench, Package, Tag, Smartphone, CreditCard, Download, ExternalLink,
+  ShieldCheck, Zap, Wrench, Package, Tag, Smartphone, CreditCard, Download, ExternalLink, Check, Lock
 } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { useEffect, useCallback } from 'react';
@@ -209,25 +209,113 @@ function Section({
   linkHref,
   linkLabel,
   children,
+  header,
 }: {
-  title: string;
+  title?: string | React.ReactNode;
   linkHref?: string;
   linkLabel?: string;
   children: React.ReactNode;
+  header?: React.ReactNode;
 }) {
   return (
     <section className="container mx-auto px-4">
-      <div className="flex items-center justify-between mb-6 md:mb-8">
-        <h3 className="text-xl md:text-2xl font-extrabold tracking-tight">{title}</h3>
-        {linkHref && linkLabel && (
-          <Link href={linkHref} className="text-sm font-semibold text-primary hover:text-primary/80 flex items-center group">
-            {linkLabel}
-            <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        )}
-      </div>
+      {header ? header : (
+        <div className="flex items-center justify-between mb-6 md:mb-8">
+          <h3 className="text-xl md:text-2xl font-extrabold tracking-tight">{title}</h3>
+          {linkHref && linkLabel && (
+            <Link href={linkHref} className="text-sm font-semibold text-primary hover:text-primary/80 flex items-center group">
+              {linkLabel}
+              <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          )}
+        </div>
+      )}
       {children}
     </section>
+  );
+}
+
+// ── Services Illustrations ──────────────────────────────────────────────────────
+
+function FlexyIllustration() {
+  return (
+    <div className="relative w-full h-full min-h-[220px] flex items-center justify-center pointer-events-none">
+      <div className="absolute w-48 h-48 bg-primary/20 rounded-full blur-3xl -left-8 top-10"></div>
+      <div className="absolute w-40 h-40 bg-blue-400/20 rounded-full blur-2xl right-0 bottom-0"></div>
+
+      <div className="relative z-10 w-[130px] h-[260px] md:w-[140px] md:h-[280px] md:-ml-8 bg-navy rounded-[2rem] md:rounded-[2.5rem] border-[6px] md:border-[8px] border-navy shadow-2xl flex flex-col overflow-hidden rotate-[-5deg] transform-gpu group-hover:rotate-0 group-hover:scale-105 transition-all duration-700 ease-out">
+        <div className="flex-1 bg-gradient-to-br from-blue-500 via-primary to-blue-900 w-full relative flex flex-col items-center justify-center">
+          <div className="absolute top-0 w-14 h-4 bg-navy rounded-b-xl z-20"></div>
+          <div className="flex items-center justify-center w-14 h-14 bg-white text-primary rounded-2xl font-black text-3xl mb-3 shadow-lg italic">F</div>
+          <div className="text-white font-bold text-xl leading-tight">Flexy</div>
+          <div className="text-white/80 text-[9px] mt-1 font-medium">Plus proche de vous</div>
+        </div>
+      </div>
+
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 rotate-3 text-primary font-bold text-sm leading-snug text-center hidden md:block">
+        Tout<br/>Boukhatem<br/>Telecom<br/>dans votre<br/>poche !
+      </div>
+    </div>
+  );
+}
+
+function PaymentIllustration() {
+  return (
+    <div className="relative w-full h-full min-h-[220px] flex items-center justify-center pointer-events-none">
+      <div className="absolute w-48 h-48 bg-secondary/20 rounded-full blur-3xl -left-8 top-10"></div>
+      <div className="absolute w-40 h-40 bg-orange-400/20 rounded-full blur-2xl right-0 bottom-0"></div>
+
+      <div className="absolute z-0 w-[160px] h-[100px] bg-gradient-to-br from-slate-800 to-slate-950 rounded-xl shadow-xl border border-slate-700 p-4 flex flex-col justify-between right-2 md:right-6 top-1/2 -translate-y-1/2 rotate-[15deg] transform-gpu group-hover:rotate-[20deg] group-hover:translate-x-3 group-hover:-translate-y-5 transition-all duration-700 ease-out">
+        <div className="flex justify-between items-center">
+          <CreditCard className="w-5 h-5 text-slate-400" />
+          <div className="flex -space-x-2">
+            <div className="w-5 h-5 rounded-full bg-white/20"></div>
+            <div className="w-5 h-5 rounded-full bg-white/20"></div>
+          </div>
+        </div>
+        <div>
+          <div className="text-slate-300 font-mono text-[11px] tracking-[0.2em]">**** 3456</div>
+          <div className="text-slate-500 font-mono text-[9px] mt-1.5 tracking-wider">12/28</div>
+        </div>
+      </div>
+
+      <div className="relative z-10 w-[130px] h-[260px] md:w-[140px] md:h-[280px] -ml-12 md:-ml-16 bg-navy rounded-[2rem] md:rounded-[2.5rem] border-[6px] md:border-[8px] border-navy shadow-2xl flex flex-col overflow-hidden rotate-[-8deg] transform-gpu group-hover:rotate-[-4deg] group-hover:scale-105 transition-all duration-700 ease-out">
+        <div className="flex-1 bg-white w-full relative flex flex-col items-center justify-center p-4">
+          <div className="absolute top-0 w-14 h-4 bg-navy rounded-b-xl"></div>
+          <div className="text-navy font-bold text-[11px] mb-6">Paiement sécurisé</div>
+          <div className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/30">
+            <Check className="w-7 h-7 text-white stroke-[3]" />
+          </div>
+          <div className="text-navy font-bold text-[10px]">Transaction sécurisée</div>
+          <div className="w-20 h-1.5 bg-slate-100 rounded-full mt-6"></div>
+          <div className="w-14 h-1.5 bg-slate-100 rounded-full mt-2"></div>
+        </div>
+      </div>
+
+      <div className="absolute right-2 bottom-8 -rotate-6 text-secondary font-bold text-sm leading-tight text-right hidden md:block">
+        Simple<br/>Rapide<br/>Sécurisé
+      </div>
+    </div>
+  );
+}
+
+function PaymentMethodsBadges() {
+  return (
+    <div className="flex items-center gap-2 mb-6 mt-1">
+      <div className="bg-white dark:bg-slate-800 shadow-sm border border-black/5 dark:border-white/10 rounded-md px-2 py-1 flex items-center justify-center h-7">
+        <span className="text-[10px] font-bold text-navy dark:text-white tracking-tighter">CB</span>
+      </div>
+      <div className="bg-white dark:bg-slate-800 shadow-sm border border-black/5 dark:border-white/10 rounded-md px-2 py-1 flex items-center justify-center h-7">
+        <span className="text-[10px] font-black text-[#1a1f71] dark:text-white italic">VISA</span>
+      </div>
+      <div className="bg-white dark:bg-slate-800 shadow-sm border border-black/5 dark:border-white/10 rounded-md px-2 py-1 flex items-center justify-center h-7 gap-0.5">
+        <div className="w-2.5 h-2.5 rounded-full bg-[#eb001b]"></div>
+        <div className="w-2.5 h-2.5 rounded-full bg-[#f79e1b] -ml-1 mix-blend-multiply dark:mix-blend-normal"></div>
+      </div>
+      <div className="bg-white dark:bg-slate-800 shadow-sm border border-black/5 dark:border-white/10 rounded-md px-2 py-1 flex items-center justify-center h-7">
+        <span className="text-[10px] font-bold text-[#b4985a]">الذهبية</span>
+      </div>
+    </div>
   );
 }
 
@@ -253,34 +341,53 @@ export default function Home() {
   const quickServices = [
     settings?.flexyEnabled && settings.flexyUrl ? {
       key: 'flexy',
-      title: settings.flexyTitle,
+      title: settings.flexyTitle || 'Application Flexy',
       description: settings.flexyDescription,
       buttonText: settings.flexyButtonText,
       url: settings.flexyUrl,
-      icon: Smartphone,
       actionIcon: Download,
       accent: 'primary',
+      bgClass: 'bg-gradient-to-br from-[#f0f7ff] to-[#e0f0ff] dark:from-primary/10 dark:to-primary/5',
+      logo: (
+        <div className="bg-primary text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg font-black text-2xl italic">F</div>
+      ),
+      features: [
+        { icon: Zap, text: 'Rapide' },
+        { icon: ShieldCheck, text: 'Sécurisée' },
+        { icon: Smartphone, text: 'Toujours avec vous' },
+      ],
+      bottomText: (
+        <div className="flex items-center gap-1.5 text-xs text-navy/60 dark:text-slate-400 font-semibold">
+          <Smartphone className="w-3.5 h-3.5" />
+          <span>Disponible sur Android</span>
+        </div>
+      ),
+      illustration: <FlexyIllustration />
     } : null,
     settings?.paymentEnabled && settings.paymentUrl ? {
       key: 'payment',
-      title: settings.paymentTitle,
+      title: settings.paymentTitle || 'Paiement en ligne',
       description: settings.paymentDescription,
       buttonText: settings.paymentButtonText,
       url: settings.paymentUrl,
-      icon: CreditCard,
-      actionIcon: ExternalLink,
+      actionIcon: Lock,
       accent: 'secondary',
+      bgClass: 'bg-gradient-to-br from-[#fff6ef] to-[#ffedd5] dark:from-secondary/10 dark:to-secondary/5',
+      logo: (
+        <div className="bg-secondary text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg">
+          <CreditCard className="w-6 h-6" />
+        </div>
+      ),
+      features: 'payment-methods',
+      bottomText: (
+        <div className="flex items-center gap-1.5 text-xs text-secondary/80 font-bold">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>Paiement 100% sécurisé</span>
+        </div>
+      ),
+      illustration: <PaymentIllustration />
     } : null,
-  ].filter(Boolean) as Array<{
-    key: string;
-    title: string;
-    description: string;
-    buttonText: string;
-    url: string;
-    icon: typeof Smartphone;
-    actionIcon: typeof Download;
-    accent: 'primary' | 'secondary';
-  }>;
+  ].filter(Boolean) as Array<any>;
 
   return (
     <div className="flex flex-col gap-10 md:gap-16 pb-10">
@@ -415,33 +522,93 @@ export default function Home() {
       </section>
 
       {quickServices.length > 0 && (
-        <Section title={settings?.servicesSectionTitle || 'Nos services en ligne'}>
-          <div className={`grid gap-4 md:gap-6 ${quickServices.length > 1 ? 'md:grid-cols-2' : 'max-w-2xl'}`}>
+        <Section
+          header={
+            <div className="mb-6 md:mb-8">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-0.5 bg-primary"></div>
+                <span className="text-xs font-bold text-primary uppercase tracking-wider">Nos Services</span>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground">
+                {settings?.servicesSectionTitle || 'Nos services en ligne'}
+              </h2>
+              <p className="text-muted-foreground text-sm mt-1">
+                Des solutions simples et rapides pour mieux vous servir
+              </p>
+            </div>
+          }
+        >
+          <div className="grid gap-4 md:gap-6 md:grid-cols-2">
             {quickServices.map((service) => {
-              const Icon = service.icon;
               const ActionIcon = service.actionIcon;
               const isPrimary = service.accent === 'primary';
+
               return (
-                <Card
+                <div
                   key={service.key}
-                  className="group overflow-hidden border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl"
+                  className={`group relative overflow-hidden rounded-3xl border border-border/50 transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl ${service.bgClass} ${quickServices.length === 1 ? 'md:col-span-2 max-w-4xl mx-auto w-full' : ''}`}
                 >
-                  <CardContent className="flex h-full flex-col gap-5 p-6 sm:flex-row sm:items-center md:p-8">
-                    <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl ${isPrimary ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'}`}>
-                      <Icon className="h-8 w-8" />
+                  <div className="flex h-full min-h-[300px]">
+                    {/* Left Content */}
+                    <div className="relative z-20 flex flex-col p-5 md:p-8 w-[66%] sm:w-[58%] lg:w-[60%] shrink-0">
+                      <div className="flex items-center gap-4 mb-4">
+                        {service.logo}
+                        <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight text-navy dark:text-white leading-none">
+                          {service.title.split(' ').map((word: string, i: number, arr: string[]) => (
+                            <span key={i} className={i === 0 && arr.length > 1 ? "font-medium block text-lg md:text-xl text-navy/80 dark:text-slate-200 mb-1" : ""}>
+                              {word}{' '}
+                            </span>
+                          ))}
+                        </h3>
+                      </div>
+
+                      <p className="text-sm text-navy/70 dark:text-slate-300 leading-relaxed mb-4 max-w-sm">
+                        {service.description}
+                      </p>
+
+                      {service.features === 'payment-methods' ? (
+                        <PaymentMethodsBadges />
+                      ) : Array.isArray(service.features) ? (
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6">
+                          {service.features.map((feat: any, i: number) => {
+                            const FeatIcon = feat.icon;
+                            return (
+                              <div key={i} className="flex items-center gap-1.5 text-xs font-semibold text-navy/80 dark:text-slate-300">
+                                <FeatIcon className="w-3.5 h-3.5 text-primary" />
+                                <span>{feat.text}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+
+                      <div className="mt-auto pt-6">
+                        <Button asChild className={`w-full sm:w-auto h-11 px-6 rounded-xl font-bold transition-all shadow-lg active:scale-95 ${
+                          isPrimary
+                            ? 'bg-primary hover:bg-primary/90 text-white shadow-primary/25 hover:shadow-primary/40'
+                            : 'bg-secondary hover:bg-secondary/90 text-white shadow-secondary/25 hover:shadow-secondary/40'
+                        }`}>
+                          <a href={service.url} target="_blank" rel="noopener noreferrer">
+                            <ActionIcon className="mr-2 h-4 w-4" />
+                            {service.buttonText}
+                            <ChevronRight className="ml-1 h-4 w-4 opacity-70 group-hover:translate-x-1 transition-transform" />
+                          </a>
+                        </Button>
+
+                        {service.bottomText && (
+                          <div className="mt-4">
+                            {service.bottomText}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <h3 className="text-xl font-extrabold tracking-tight text-foreground">{service.title}</h3>
-                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{service.description}</p>
-                      <Button asChild className={`mt-5 w-full sm:w-fit ${isPrimary ? 'bg-primary hover:bg-primary/90' : 'bg-secondary hover:bg-secondary/90'} text-white`}>
-                        <a href={service.url} target="_blank" rel="noopener noreferrer">
-                          {service.buttonText}
-                          <ActionIcon className="ml-2 h-4 w-4" />
-                        </a>
-                      </Button>
+
+                    {/* Right Illustration */}
+                    <div className="absolute inset-y-0 right-0 w-[42%] sm:w-[45%] overflow-hidden">
+                      {service.illustration}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               );
             })}
           </div>
