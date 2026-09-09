@@ -851,7 +851,7 @@ export default function AdminProducts() {
 
                           <div className="space-y-3 pl-4 border-l-2 border-muted">
                             <div className="flex items-center justify-between">
-                              <FormLabel>Valeurs</FormLabel>
+                              <span className="text-sm font-medium leading-none">Valeurs</span>
                               <Button
                                 type="button"
                                 variant="ghost"
