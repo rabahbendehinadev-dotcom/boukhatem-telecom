@@ -87,7 +87,8 @@ export const RegisterResponse = zod.object({
   "isBlocked": zod.boolean().optional(),
   "totalOrders": zod.number().optional(),
   "totalSpent": zod.number().optional(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
 }),
   "token": zod.string()
 })
@@ -111,7 +112,8 @@ export const LoginResponse = zod.object({
   "isBlocked": zod.boolean().optional(),
   "totalOrders": zod.number().optional(),
   "totalSpent": zod.number().optional(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
 }),
   "token": zod.string()
 })
@@ -137,7 +139,8 @@ export const GetMeResponse = zod.object({
   "isBlocked": zod.boolean().optional(),
   "totalOrders": zod.number().optional(),
   "totalSpent": zod.number().optional(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
 })
 
 
@@ -159,7 +162,8 @@ export const UpdateMeResponse = zod.object({
   "isBlocked": zod.boolean().optional(),
   "totalOrders": zod.number().optional(),
   "totalSpent": zod.number().optional(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
 })
 
 
@@ -699,9 +703,19 @@ export const CreateReviewResponse = zod.object({
 export const GetCartResponse = zod.object({
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish().describe('Variant identity; null is the legacy product-only line.'),
   "name": zod.string(),
   "price": zod.number(),
   "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()),
   "stock": zod.number().optional()
@@ -729,15 +743,26 @@ export const ClearCartResponse = zod.object({
  */
 export const AddToCartBody = zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish(),
   "quantity": zod.number()
 })
 
 export const AddToCartResponse = zod.object({
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish().describe('Variant identity; null is the legacy product-only line.'),
   "name": zod.string(),
   "price": zod.number(),
   "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()),
   "stock": zod.number().optional()
@@ -760,15 +785,26 @@ export const UpdateCartItemParams = zod.object({
 })
 
 export const UpdateCartItemBody = zod.object({
+  "variantId": zod.number().nullish(),
   "quantity": zod.number()
 })
 
 export const UpdateCartItemResponse = zod.object({
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish().describe('Variant identity; null is the legacy product-only line.'),
   "name": zod.string(),
   "price": zod.number(),
   "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()),
   "stock": zod.number().optional()
@@ -793,9 +829,19 @@ export const RemoveFromCartParams = zod.object({
 export const RemoveFromCartResponse = zod.object({
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish().describe('Variant identity; null is the legacy product-only line.'),
   "name": zod.string(),
   "price": zod.number(),
   "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()),
   "stock": zod.number().optional()
@@ -820,9 +866,19 @@ export const ApplyCouponBody = zod.object({
 export const ApplyCouponResponse = zod.object({
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish().describe('Variant identity; null is the legacy product-only line.'),
   "name": zod.string(),
   "price": zod.number(),
   "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()),
   "stock": zod.number().optional()
@@ -903,8 +959,19 @@ export const ListMyOrdersResponseItem = zod.object({
   "paymentNotes": zod.string().nullish(),
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish(),
   "name": zod.string(),
   "price": zod.number(),
+  "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()).optional()
 })).optional(),
@@ -921,8 +988,7 @@ export const ListMyOrdersResponseItem = zod.object({
   "address": zod.string()
 }).optional(),
   "notes": zod.string().nullish(),
-  "createdAt": zod.string(),
-  "updatedAt": zod.string().optional()
+  "createdAt": zod.string()
 })
 export const ListMyOrdersResponse = zod.array(ListMyOrdersResponseItem)
 
@@ -955,8 +1021,19 @@ export const CreateOrderResponse = zod.object({
   "paymentNotes": zod.string().nullish(),
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish(),
   "name": zod.string(),
   "price": zod.number(),
+  "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()).optional()
 })).optional(),
@@ -973,8 +1050,138 @@ export const CreateOrderResponse = zod.object({
   "address": zod.string()
 }).optional(),
   "notes": zod.string().nullish(),
-  "createdAt": zod.string(),
-  "updatedAt": zod.string().optional()
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Place a guest order
+ */
+export const createGuestOrderBodyTwoIdempotencyKeyRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+export const CreateGuestOrderBody = zod.object({
+  "shippingAddress": zod.object({
+  "fullName": zod.string(),
+  "phone": zod.string(),
+  "wilaya": zod.string(),
+  "commune": zod.string().optional(),
+  "address": zod.string()
+}),
+  "notes": zod.string().optional(),
+  "paymentMethod": zod.enum(['cash_on_delivery', 'bank_transfer', 'cib_edahabia']).optional(),
+  "idempotencyKey": zod.string().optional().describe('UUID generated client-side to prevent duplicate orders on retry')
+}).and(zod.object({
+  "idempotencyKey": zod.string().regex(createGuestOrderBodyTwoIdempotencyKeyRegExp).optional(),
+  "items": zod.array(zod.object({
+  "productId": zod.number(),
+  "variantId": zod.number().nullish(),
+  "quantity": zod.number()
+})).optional()
+}))
+
+export const CreateGuestOrderResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number().optional(),
+  "userName": zod.string().nullish(),
+  "userEmail": zod.string().nullish(),
+  "status": zod.enum(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']),
+  "paymentMethod": zod.enum(['cash_on_delivery', 'bank_transfer', 'cib_edahabia']).optional(),
+  "paymentStatus": zod.enum(['pending', 'awaiting_confirmation', 'confirmed', 'failed']).optional(),
+  "paymentProofUrl": zod.string().nullish(),
+  "paymentNotes": zod.string().nullish(),
+  "items": zod.array(zod.object({
+  "productId": zod.number(),
+  "variantId": zod.number().nullish(),
+  "name": zod.string(),
+  "price": zod.number(),
+  "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
+  "quantity": zod.number(),
+  "images": zod.array(zod.string()).optional()
+})).optional(),
+  "subtotal": zod.number(),
+  "discount": zod.number().optional(),
+  "couponCode": zod.string().nullish(),
+  "shipping": zod.number().optional(),
+  "total": zod.number(),
+  "shippingAddress": zod.object({
+  "fullName": zod.string(),
+  "phone": zod.string(),
+  "wilaya": zod.string(),
+  "commune": zod.string().optional(),
+  "address": zod.string()
+}).optional(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.string()
+}).and(zod.object({
+  "guestAccessToken": zod.string()
+}))
+
+
+export const SubmitGuestPaymentProofParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SubmitGuestPaymentProofHeader = zod.object({
+  "x-guest-access-token": zod.string().optional()
+})
+
+export const SubmitGuestPaymentProofBody = zod.object({
+  "paymentProofUrl": zod.string(),
+  "guestAccessToken": zod.string()
+})
+
+export const SubmitGuestPaymentProofResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number().optional(),
+  "userName": zod.string().nullish(),
+  "userEmail": zod.string().nullish(),
+  "status": zod.enum(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']),
+  "paymentMethod": zod.enum(['cash_on_delivery', 'bank_transfer', 'cib_edahabia']).optional(),
+  "paymentStatus": zod.enum(['pending', 'awaiting_confirmation', 'confirmed', 'failed']).optional(),
+  "paymentProofUrl": zod.string().nullish(),
+  "paymentNotes": zod.string().nullish(),
+  "items": zod.array(zod.object({
+  "productId": zod.number(),
+  "variantId": zod.number().nullish(),
+  "name": zod.string(),
+  "price": zod.number(),
+  "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
+  "quantity": zod.number(),
+  "images": zod.array(zod.string()).optional()
+})).optional(),
+  "subtotal": zod.number(),
+  "discount": zod.number().optional(),
+  "couponCode": zod.string().nullish(),
+  "shipping": zod.number().optional(),
+  "total": zod.number(),
+  "shippingAddress": zod.object({
+  "fullName": zod.string(),
+  "phone": zod.string(),
+  "wilaya": zod.string(),
+  "commune": zod.string().optional(),
+  "address": zod.string()
+}).optional(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.string()
 })
 
 
@@ -997,8 +1204,19 @@ export const GetOrderResponse = zod.object({
   "paymentNotes": zod.string().nullish(),
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish(),
   "name": zod.string(),
   "price": zod.number(),
+  "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()).optional()
 })).optional(),
@@ -1015,8 +1233,7 @@ export const GetOrderResponse = zod.object({
   "address": zod.string()
 }).optional(),
   "notes": zod.string().nullish(),
-  "createdAt": zod.string(),
-  "updatedAt": zod.string().optional()
+  "createdAt": zod.string()
 })
 
 
@@ -1301,8 +1518,19 @@ export const GetAdminDashboardResponse = zod.object({
   "paymentNotes": zod.string().nullish(),
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish(),
   "name": zod.string(),
   "price": zod.number(),
+  "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()).optional()
 })).optional(),
@@ -1319,8 +1547,7 @@ export const GetAdminDashboardResponse = zod.object({
   "address": zod.string()
 }).optional(),
   "notes": zod.string().nullish(),
-  "createdAt": zod.string(),
-  "updatedAt": zod.string().optional()
+  "createdAt": zod.string()
 })),
   "topProducts": zod.array(zod.object({
   "id": zod.number(),
@@ -1372,8 +1599,19 @@ export const ListAllOrdersResponse = zod.object({
   "paymentNotes": zod.string().nullish(),
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish(),
   "name": zod.string(),
   "price": zod.number(),
+  "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()).optional()
 })).optional(),
@@ -1390,8 +1628,7 @@ export const ListAllOrdersResponse = zod.object({
   "address": zod.string()
 }).optional(),
   "notes": zod.string().nullish(),
-  "createdAt": zod.string(),
-  "updatedAt": zod.string().optional()
+  "createdAt": zod.string()
 })),
   "total": zod.number(),
   "page": zod.number(),
@@ -1422,8 +1659,19 @@ export const UpdateOrderStatusResponse = zod.object({
   "paymentNotes": zod.string().nullish(),
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish(),
   "name": zod.string(),
   "price": zod.number(),
+  "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()).optional()
 })).optional(),
@@ -1440,8 +1688,7 @@ export const UpdateOrderStatusResponse = zod.object({
   "address": zod.string()
 }).optional(),
   "notes": zod.string().nullish(),
-  "createdAt": zod.string(),
-  "updatedAt": zod.string().optional()
+  "createdAt": zod.string()
 })
 
 
@@ -1469,8 +1716,19 @@ export const UpdateOrderPaymentResponse = zod.object({
   "paymentNotes": zod.string().nullish(),
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish(),
   "name": zod.string(),
   "price": zod.number(),
+  "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()).optional()
 })).optional(),
@@ -1487,8 +1745,7 @@ export const UpdateOrderPaymentResponse = zod.object({
   "address": zod.string()
 }).optional(),
   "notes": zod.string().nullish(),
-  "createdAt": zod.string(),
-  "updatedAt": zod.string().optional()
+  "createdAt": zod.string()
 })
 
 
@@ -1515,8 +1772,19 @@ export const SubmitPaymentProofResponse = zod.object({
   "paymentNotes": zod.string().nullish(),
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish(),
   "name": zod.string(),
   "price": zod.number(),
+  "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()).optional()
 })).optional(),
@@ -1533,8 +1801,7 @@ export const SubmitPaymentProofResponse = zod.object({
   "address": zod.string()
 }).optional(),
   "notes": zod.string().nullish(),
-  "createdAt": zod.string(),
-  "updatedAt": zod.string().optional()
+  "createdAt": zod.string()
 })
 
 
@@ -1556,7 +1823,8 @@ export const ListCustomersResponse = zod.object({
   "isBlocked": zod.boolean().optional(),
   "totalOrders": zod.number().optional(),
   "totalSpent": zod.number().optional(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
 })),
   "total": zod.number(),
   "page": zod.number(),
@@ -1581,7 +1849,8 @@ export const GetCustomerResponse = zod.object({
   "isBlocked": zod.boolean().optional(),
   "totalOrders": zod.number().optional(),
   "totalSpent": zod.number().optional(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
 }),
   "orders": zod.array(zod.object({
   "id": zod.number(),
@@ -1595,8 +1864,19 @@ export const GetCustomerResponse = zod.object({
   "paymentNotes": zod.string().nullish(),
   "items": zod.array(zod.object({
   "productId": zod.number(),
+  "variantId": zod.number().nullish(),
   "name": zod.string(),
   "price": zod.number(),
+  "comparePrice": zod.number().nullish(),
+  "sku": zod.string().nullish(),
+  "optionSnapshots": zod.array(zod.object({
+  "optionId": zod.number(),
+  "optionName": zod.string(),
+  "valueId": zod.number(),
+  "label": zod.string(),
+  "value": zod.string(),
+  "colorHex": zod.string().nullish()
+})).optional(),
   "quantity": zod.number(),
   "images": zod.array(zod.string()).optional()
 })).optional(),
@@ -1613,8 +1893,7 @@ export const GetCustomerResponse = zod.object({
   "address": zod.string()
 }).optional(),
   "notes": zod.string().nullish(),
-  "createdAt": zod.string(),
-  "updatedAt": zod.string().optional()
+  "createdAt": zod.string()
 }))
 })
 
@@ -1640,7 +1919,8 @@ export const UpdateCustomerResponse = zod.object({
   "isBlocked": zod.boolean().optional(),
   "totalOrders": zod.number().optional(),
   "totalSpent": zod.number().optional(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
 })
 
 

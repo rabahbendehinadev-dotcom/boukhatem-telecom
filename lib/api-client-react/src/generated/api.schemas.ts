@@ -45,6 +45,7 @@ export interface User {
   totalOrders?: number;
   totalSpent?: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface AuthResponse {
@@ -272,12 +273,30 @@ export interface ReviewInput {
   comment?: string;
 }
 
+export interface OptionSnapshot {
+  optionId: number;
+  optionName: string;
+  valueId: number;
+  label: string;
+  value: string;
+  /** @nullable */
+  colorHex?: string | null;
+}
+
 export interface CartItem {
   productId: number;
+  /**
+     * Variant identity; null is the legacy product-only line.
+     * @nullable
+     */
+  variantId?: number | null;
   name: string;
   price: number;
   /** @nullable */
   comparePrice?: number | null;
+  /** @nullable */
+  sku?: string | null;
+  optionSnapshots?: OptionSnapshot[];
   quantity: number;
   images: string[];
   stock?: number;
@@ -297,10 +316,14 @@ export interface Cart {
 
 export interface CartItemInput {
   productId: number;
+  /** @nullable */
+  variantId?: number | null;
   quantity: number;
 }
 
 export interface CartItemUpdate {
+  /** @nullable */
+  variantId?: number | null;
   quantity: number;
 }
 
@@ -310,8 +333,15 @@ export interface CouponApplyInput {
 
 export interface OrderItem {
   productId: number;
+  /** @nullable */
+  variantId?: number | null;
   name: string;
   price: number;
+  /** @nullable */
+  comparePrice?: number | null;
+  /** @nullable */
+  sku?: string | null;
+  optionSnapshots?: OptionSnapshot[];
   quantity: number;
   images?: string[];
 }
@@ -380,7 +410,15 @@ export interface Order {
   /** @nullable */
   notes?: string | null;
   createdAt: string;
-  updatedAt?: string;
+}
+
+export type GuestOrder = Order & {
+  guestAccessToken: string;
+};
+
+export interface GuestPaymentProofInput {
+  paymentProofUrl: string;
+  guestAccessToken: string;
 }
 
 export interface OrderInput {
@@ -390,6 +428,12 @@ export interface OrderInput {
   /** UUID generated client-side to prevent duplicate orders on retry */
   idempotencyKey?: string;
 }
+
+export type GuestOrderInput = OrderInput & {
+  /** @pattern ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ */
+  idempotencyKey?: string;
+  items?: CartItemInput[];
+};
 
 export type OrderStatusUpdateStatus = typeof OrderStatusUpdateStatus[keyof typeof OrderStatusUpdateStatus];
 

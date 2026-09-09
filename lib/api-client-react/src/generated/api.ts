@@ -44,6 +44,9 @@ import type {
   ErrorEnvelope,
   GetSalesChartParams,
   GetSearchSuggestionsParams,
+  GuestOrder,
+  GuestOrderInput,
+  GuestPaymentProofInput,
   HealthStatus,
   ListAllOrdersParams,
   ListCustomersParams,
@@ -3137,6 +3140,143 @@ export const useCreateOrder = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateOrderMutationOptions(options));
+    }
+
+export const getCreateGuestOrderUrl = () => {
+
+
+
+
+  return `/api/orders/guest`
+}
+
+/**
+ * @summary Place a guest order
+ */
+export const createGuestOrder = async (guestOrderInput: GuestOrderInput, options?: Parameters<typeof customFetch>[1]): Promise<GuestOrder> => {
+
+  return customFetch<GuestOrder>(getCreateGuestOrderUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(guestOrderInput)
+  }
+);}
+
+
+
+
+
+export const getCreateGuestOrderMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGuestOrder>>, TError,{data: BodyType<GuestOrderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createGuestOrder>>, TError,{data: BodyType<GuestOrderInput>}, TContext> => {
+
+const mutationKey = ['createGuestOrder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createGuestOrder>>, {data: BodyType<GuestOrderInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createGuestOrder(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateGuestOrderMutationResult = NonNullable<Awaited<ReturnType<typeof createGuestOrder>>>
+    export type CreateGuestOrderMutationBody = BodyType<GuestOrderInput>
+    export type CreateGuestOrderMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Place a guest order
+ */
+export const useCreateGuestOrder = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGuestOrder>>, TError,{data: BodyType<GuestOrderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createGuestOrder>>,
+        TError,
+        {data: BodyType<GuestOrderInput>},
+        TContext
+      > => {
+      return useMutation(getCreateGuestOrderMutationOptions(options));
+    }
+
+export const getSubmitGuestPaymentProofUrl = (id: number,) => {
+
+
+
+
+  return `/api/orders/guest/${id}/payment-proof`
+}
+
+export const submitGuestPaymentProof = async (id: number,
+    guestPaymentProofInput: GuestPaymentProofInput, options?: Parameters<typeof customFetch>[1]): Promise<Order> => {
+
+  return customFetch<Order>(getSubmitGuestPaymentProofUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(guestPaymentProofInput)
+  }
+);}
+
+
+
+
+
+export const getSubmitGuestPaymentProofMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitGuestPaymentProof>>, TError,{id: number;data: BodyType<GuestPaymentProofInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitGuestPaymentProof>>, TError,{id: number;data: BodyType<GuestPaymentProofInput>}, TContext> => {
+
+const mutationKey = ['submitGuestPaymentProof'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitGuestPaymentProof>>, {id: number;data: BodyType<GuestPaymentProofInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  submitGuestPaymentProof(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitGuestPaymentProofMutationResult = NonNullable<Awaited<ReturnType<typeof submitGuestPaymentProof>>>
+    export type SubmitGuestPaymentProofMutationBody = BodyType<GuestPaymentProofInput>
+    export type SubmitGuestPaymentProofMutationError = ErrorType<unknown>
+
+    export const useSubmitGuestPaymentProof = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitGuestPaymentProof>>, TError,{id: number;data: BodyType<GuestPaymentProofInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitGuestPaymentProof>>,
+        TError,
+        {id: number;data: BodyType<GuestPaymentProofInput>},
+        TContext
+      > => {
+      return useMutation(getSubmitGuestPaymentProofMutationOptions(options));
     }
 
 export const getGetOrderUrl = (id: number,) => {

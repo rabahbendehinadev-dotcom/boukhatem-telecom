@@ -187,7 +187,14 @@ export default function Checkout() {
         const res = await fetch('/api/orders/guest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: cart.items, ...orderPayload }),
+          body: JSON.stringify({
+            items: cart.items.map((i: any) => ({
+              productId: i.productId,
+              variantId: i.variantId,
+              quantity: i.quantity
+            })),
+            ...orderPayload
+          }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -217,7 +224,12 @@ export default function Checkout() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ paymentProofUrl: proofUrl.trim() }),
+        body: JSON.stringify({
+          paymentProofUrl: proofUrl.trim(),
+          ...(!orderComplete.userId && orderComplete.guestAccessToken
+            ? { guestAccessToken: orderComplete.guestAccessToken }
+            : {}),
+        }),
       });
       if (!res.ok) throw new Error();
       setProofSubmitted(true);
@@ -732,7 +744,7 @@ export default function Checkout() {
 
               <div className="space-y-4 max-h-60 overflow-y-auto pr-2 mb-6 scrollbar-hide">
                 {cart.items.map((item: any) => (
-                  <div key={item.productId} className="flex gap-4 text-sm">
+                  <div key={`${item.productId}-${item.variantId ?? 'base'}`} className="flex gap-4 text-sm">
                     <div className="relative w-16 h-16 bg-muted/30 rounded-lg p-1 border border-border/50 shrink-0">
                       <img src={item.images?.[0]} alt="" className="max-h-full object-contain" />
                       <span className="absolute -top-2 -right-2 bg-muted text-foreground text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center border border-border">
@@ -741,6 +753,18 @@ export default function Checkout() {
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
                       <div className="font-bold text-foreground line-clamp-2 leading-tight mb-1">{item.name}</div>
+                      {item.optionSnapshots?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {item.optionSnapshots.map((option: any, index: number) => (
+                            <span
+                              key={`${option.optionId ?? option.name}-${option.valueId ?? option.value}-${index}`}
+                              className="text-[11px] text-muted-foreground"
+                            >
+                              {option.optionName ?? option.name}: {option.label ?? option.value}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="text-primary font-bold">{Number(item.price).toLocaleString('fr-DZ')} DA</div>
                     </div>
                   </div>

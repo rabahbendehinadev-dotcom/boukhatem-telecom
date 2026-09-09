@@ -34,6 +34,13 @@ interface HomepageProduct {
   images: string[];
   brandName: string | null;
   categoryName: string | null;
+  variantSummary?: {
+    hasVariants: boolean;
+    lowestPrice: number;
+    lowestComparePrice: number | null;
+    totalStock: number;
+    inStock: boolean;
+  };
 }
 
 interface HomepageCategory {
@@ -90,6 +97,10 @@ function ProductCard({ product }: { product: HomepageProduct }) {
   const inWishlist = isInWishlist(product.id);
 
   const handleAddToCart = (e: React.MouseEvent) => {
+    if (product.variantSummary?.hasVariants) {
+      // Don't prevent default, let the Link wrapper handle navigation
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     addToCart(product.id, 1);
@@ -178,14 +189,23 @@ function ProductCard({ product }: { product: HomepageProduct }) {
           {/* Price row — always at the bottom */}
           <div className="mt-auto flex items-end justify-between gap-2">
             <div>
-              <div className="font-extrabold text-lg text-primary tracking-tight leading-tight">
-                {product.price.toLocaleString('fr-DZ')}
-                <span className="text-xs font-normal ml-1">DA</span>
-              </div>
-              {product.comparePrice && product.comparePrice > product.price && (
-                <div className="text-xs text-muted-foreground line-through font-medium">
-                  {product.comparePrice.toLocaleString('fr-DZ')} DA
+              {product.variantSummary?.hasVariants && product.variantSummary.lowestPrice === null ? (
+                <div className="font-extrabold text-lg text-destructive tracking-tight leading-tight">
+                  Rupture
                 </div>
+              ) : (
+                <>
+                  <div className="font-extrabold text-lg text-primary tracking-tight leading-tight">
+                    {product.variantSummary?.hasVariants && <span className="text-[10px] font-normal text-muted-foreground mr-1">À partir de</span>}
+                    {(product.variantSummary?.hasVariants ? product.variantSummary.lowestPrice : product.price)?.toLocaleString('fr-DZ')}
+                    <span className="text-xs font-normal ml-1">DA</span>
+                  </div>
+                  {((product.variantSummary?.hasVariants ? product.variantSummary.lowestComparePrice : product.comparePrice) ?? 0) > ((product.variantSummary?.hasVariants ? product.variantSummary.lowestPrice : product.price) ?? 0) && (
+                    <div className="text-xs text-muted-foreground line-through font-medium">
+                      {(product.variantSummary?.hasVariants ? product.variantSummary.lowestComparePrice : product.comparePrice)!.toLocaleString('fr-DZ')} DA
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <Button

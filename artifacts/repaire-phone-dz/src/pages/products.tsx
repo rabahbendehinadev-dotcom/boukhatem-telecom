@@ -43,7 +43,7 @@ function getPaginationItems(totalPages: number, currentPage: number): Array<numb
 export default function Products() {
   const query = useQueryParams();
   const [location, setLocation] = useLocation();
-  
+
   // Filters state
   const [search, setSearch] = useState(query.get('search') || '');
   const [categoryId, setCategoryId] = useState<number | null>(query.get('categoryId') ? Number(query.get('categoryId')) : null);
@@ -54,12 +54,12 @@ export default function Products() {
   const [sortBy, setSortBy] = useState<string>(query.get('sortBy') || 'newest');
   const initialPage = Number(query.get('page'));
   const [page, setPage] = useState<number>(Number.isInteger(initialPage) && initialPage > 0 ? initialPage : 1);
-  
+
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   const { data: categories } = useListCategories();
   const { data: brands } = useListBrands();
-  
+
   const { data: productsData, isLoading } = useListProducts({
     search: search || undefined,
     categoryId: categoryId ?? undefined,
@@ -115,8 +115,8 @@ export default function Products() {
         <h4 className="font-bold text-sm mb-4 uppercase tracking-wider text-muted-foreground">Catégories</h4>
         <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-hide pr-2">
           <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="cat-all" 
+            <Checkbox
+              id="cat-all"
               checked={categoryId === null}
               onCheckedChange={() => { setCategoryId(null); updateFilters('categoryId', null); }}
             />
@@ -124,8 +124,8 @@ export default function Products() {
           </div>
           {categories?.map((cat) => (
             <div key={cat.id} className="flex items-center space-x-2">
-              <Checkbox 
-                id={`cat-${cat.id}`} 
+              <Checkbox
+                id={`cat-${cat.id}`}
                 checked={categoryId === cat.id}
                 onCheckedChange={() => { setCategoryId(cat.id); updateFilters('categoryId', cat.id.toString()); }}
               />
@@ -139,8 +139,8 @@ export default function Products() {
         <h4 className="font-bold text-sm mb-4 uppercase tracking-wider text-muted-foreground">Marques</h4>
         <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-hide pr-2">
           <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="brand-all" 
+            <Checkbox
+              id="brand-all"
               checked={brandId === null}
               onCheckedChange={() => { setBrandId(null); updateFilters('brandId', null); }}
             />
@@ -148,8 +148,8 @@ export default function Products() {
           </div>
           {brands?.map((brand) => (
             <div key={brand.id} className="flex items-center space-x-2">
-              <Checkbox 
-                id={`brand-${brand.id}`} 
+              <Checkbox
+                id={`brand-${brand.id}`}
                 checked={brandId === brand.id}
                 onCheckedChange={() => { setBrandId(brand.id); updateFilters('brandId', brand.id.toString()); }}
               />
@@ -163,24 +163,24 @@ export default function Products() {
         <h4 className="font-bold text-sm mb-4 uppercase tracking-wider text-muted-foreground">État & Dispo</h4>
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="filter-new" 
+            <Checkbox
+              id="filter-new"
               checked={isNew}
               onCheckedChange={(c) => { setIsNew(!!c); updateFilters('isNew', c ? 'true' : null); }}
             />
             <Label htmlFor="filter-new" className="text-sm cursor-pointer">Nouveautés uniquement</Label>
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="filter-discount" 
+            <Checkbox
+              id="filter-discount"
               checked={hasDiscount}
               onCheckedChange={(c) => { setHasDiscount(!!c); updateFilters('hasDiscount', c ? 'true' : null); }}
             />
             <Label htmlFor="filter-discount" className="text-sm cursor-pointer">En promotion</Label>
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="filter-stock" 
+            <Checkbox
+              id="filter-stock"
               checked={inStock}
               onCheckedChange={(c) => { setInStock(!!c); updateFilters('inStock', c ? 'true' : null); }}
             />
@@ -212,8 +212,8 @@ export default function Products() {
           {/* Controls Bar */}
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-card p-2 md:p-3 rounded-xl border border-border shadow-sm">
             <div className="flex items-center gap-2 w-full md:w-auto">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="md:hidden flex-1 border-primary/20 text-primary bg-primary/5"
                 onClick={() => setIsMobileFiltersOpen(true)}
               >
@@ -233,7 +233,7 @@ export default function Products() {
                 />
               </form>
             </div>
-            
+
             <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
               <span className="text-sm text-muted-foreground font-medium">
                 {productsData?.total || 0} produits
@@ -378,12 +378,16 @@ function ProductCard({ product }: { product: any }) {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [location, setLocation] = useLocation();
-  
+
   const inWishlist = isInWishlist(product.id);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (product.variantSummary?.hasVariants) {
+      setLocation(`/products/${product.id}`);
+      return;
+    }
     addToCart(product.id, 1);
     toast.success(`${product.name} ajouté au panier`);
   };
@@ -408,15 +412,15 @@ function ProductCard({ product }: { product: any }) {
               Nouveau
             </div>
           )}
-          <button 
+          <button
             onClick={handleToggleWishlist}
             className={`absolute top-2 right-2 z-10 p-1.5 rounded-full transition-colors ${inWishlist ? 'bg-secondary/10 text-secondary' : 'bg-white/80 text-muted-foreground hover:bg-white hover:text-foreground shadow-sm'}`}
           >
             <Heart className={`h-4 w-4 ${inWishlist ? 'fill-secondary' : ''}`} />
           </button>
-          
-          <img 
-            src={getProductImageSrc(product.images?.[0])} 
+
+          <img
+            src={getProductImageSrc(product.images?.[0])}
             alt={product.name}
             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
           />
@@ -426,7 +430,7 @@ function ProductCard({ product }: { product: any }) {
           <h4 className="font-bold text-xs md:text-sm leading-tight text-foreground line-clamp-2 flex-1 group-hover:text-primary transition-colors">
             {product.name}
           </h4>
-          
+
           <div className="flex items-center gap-1 my-0.5">
             <div className="flex text-yellow-400">
               {Array(5).fill(0).map((_, i) => (
@@ -438,17 +442,26 @@ function ProductCard({ product }: { product: any }) {
 
           <div className="flex items-end justify-between mt-1">
             <div>
-              <div className="font-extrabold text-sm md:text-lg text-primary tracking-tight">
-                {product.price.toLocaleString('fr-DZ')} <span className="text-[10px] md:text-xs font-normal">DA</span>
-              </div>
-              {product.comparePrice && (
-                <div className="text-[10px] md:text-xs text-muted-foreground line-through font-medium">
-                  {product.comparePrice.toLocaleString('fr-DZ')} DA
+              {product.variantSummary?.hasVariants && product.variantSummary.lowestPrice === null ? (
+                <div className="font-extrabold text-sm md:text-lg text-destructive tracking-tight">
+                  Rupture
                 </div>
+              ) : (
+                <>
+                  <div className="font-extrabold text-sm md:text-lg text-primary tracking-tight">
+                    {product.variantSummary?.hasVariants && <span className="text-[10px] md:text-xs font-normal text-muted-foreground mr-1">À partir de</span>}
+                    {(product.variantSummary?.hasVariants ? product.variantSummary.lowestPrice : product.price)?.toLocaleString('fr-DZ')} <span className="text-[10px] md:text-xs font-normal">DA</span>
+                  </div>
+                  {((product.variantSummary?.hasVariants ? product.variantSummary.lowestComparePrice : product.comparePrice) ?? 0) > ((product.variantSummary?.hasVariants ? product.variantSummary.lowestPrice : product.price) ?? 0) && (
+                    <div className="text-[10px] md:text-xs text-muted-foreground line-through font-medium">
+                      {(product.variantSummary?.hasVariants ? product.variantSummary.lowestComparePrice : product.comparePrice)!.toLocaleString('fr-DZ')} DA
+                    </div>
+                  )}
+                </>
               )}
             </div>
-            <Button 
-              size="icon" 
+            <Button
+              size="icon"
               className="h-7 w-7 md:h-9 md:w-9 rounded-full bg-secondary hover:bg-secondary/90 text-white shadow-md shadow-secondary/20 transition-transform active:scale-95 shrink-0"
               onClick={handleAddToCart}
             >

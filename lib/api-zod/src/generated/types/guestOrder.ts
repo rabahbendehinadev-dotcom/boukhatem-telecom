@@ -5,10 +5,8 @@
  * BOUKHATEM TELECOM - E-commerce API for phone repair equipment
  * OpenAPI spec version: 0.1.0
  */
+import type { Order } from './order';
 
-export interface CartItemInput {
-  productId: number;
-  /** @nullable */
-  variantId?: number | null;
-  quantity: number;
-}
+export type GuestOrder = Order & {
+  guestAccessToken: string;
+};

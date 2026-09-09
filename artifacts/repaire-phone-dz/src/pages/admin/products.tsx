@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -43,6 +43,29 @@ const productSchema = z.object({
   warrantyInfo: z.string().optional(),
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
+  options: z.array(z.object({
+    id: z.number().optional(),
+    name: z.string().min(1, "Nom requis"),
+    position: z.number().optional(),
+    values: z.array(z.object({
+      id: z.number().optional(),
+      label: z.string().min(1, "Label requis"),
+      value: z.string().min(1, "Valeur requise"),
+      colorHex: z.string().optional().nullable(),
+      position: z.number().optional(),
+    })),
+  })).optional().default([]),
+  variants: z.array(z.object({
+    id: z.number().optional(),
+    price: z.coerce.number().min(0),
+    comparePrice: z.coerce.number().optional().nullable(),
+    stock: z.coerce.number().min(0),
+    sku: z.string().optional(),
+    barcode: z.string().optional(),
+    imageUrl: z.string().optional().nullable(),
+    isActive: z.boolean().default(true),
+    optionValueIds: z.array(z.number()).optional().default([]),
+  })).optional().default([]),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -52,21 +75,21 @@ export default function AdminProducts() {
   const [limit, setLimit] = useState(20);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  
+
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [selectedRowIds, setSelectedRowIds] = useState<Set<number>>(new Set());
-  
+
   const queryClient = useQueryClient();
-  
-  const queryParams = { 
-    page, 
+
+  const queryParams = {
+    page,
     limit,
     search: search || undefined,
     categoryId: categoryFilter !== 'all' ? Number(categoryFilter) : undefined
   };
-  
+
   const { data: productsData, isLoading } = useListProducts(queryParams, { query: { queryKey: getListProductsQueryKey(queryParams) } });
   const { data: categories } = useListCategories();
   const { data: brands } = useListBrands();
@@ -93,6 +116,8 @@ export default function AdminProducts() {
       warrantyInfo: '',
       metaTitle: '',
       metaDescription: '',
+      options: [],
+      variants: [],
     },
   });
 
@@ -111,7 +136,8 @@ export default function AdminProducts() {
       queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
       queryClient.invalidateQueries({ queryKey: ['products'] }); // invalidate storefront cache
     } catch (err: any) {
-      toast.error(editingProduct ? 'Erreur lors de la mise à jour' : 'Erreur lors de la création');
+      const message = err?.response?.data?.error || err?.data?.error || err?.message;
+      toast.error(message || (editingProduct ? 'Erreur lors de la mise à jour' : 'Erreur lors de la création'));
     }
   };
 
@@ -147,6 +173,8 @@ export default function AdminProducts() {
       warrantyInfo: '',
       metaTitle: '',
       metaDescription: '',
+      options: [],
+      variants: [],
     });
     setIsSheetOpen(true);
   };
@@ -172,6 +200,8 @@ export default function AdminProducts() {
       warrantyInfo: product.warrantyInfo || '',
       metaTitle: product.metaTitle || '',
       metaDescription: product.metaDescription || '',
+      options: product.options || [],
+      variants: product.variants || [],
     });
     setIsSheetOpen(true);
   };
@@ -234,8 +264,8 @@ export default function AdminProducts() {
         <div className="p-4 border-b border-border bg-muted/20 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="relative w-full md:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Rechercher un produit (Nom, SKU)..." 
+            <Input
+              placeholder="Rechercher un produit (Nom, SKU)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 bg-background shadow-sm border-border h-9"
@@ -433,7 +463,7 @@ export default function AdminProducts() {
               </SheetDescription>
             </SheetHeader>
           </div>
-          
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
               <Tabs defaultValue="informations" className="flex flex-col flex-1 min-h-0">
@@ -442,6 +472,7 @@ export default function AdminProducts() {
                   <TabsList className="bg-transparent h-10 rounded-none p-0 flex-nowrap min-w-max w-full justify-start">
                     <TabsTrigger value="informations" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none h-full px-4 text-sm whitespace-nowrap">Informations</TabsTrigger>
                     <TabsTrigger value="prix" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none h-full px-4 text-sm whitespace-nowrap">Prix & Stock</TabsTrigger>
+                    <TabsTrigger value="variantes" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none h-full px-4 text-sm whitespace-nowrap">Variantes</TabsTrigger>
                     <TabsTrigger value="images" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none h-full px-4 text-sm whitespace-nowrap">Images</TabsTrigger>
                     <TabsTrigger value="categorie" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none h-full px-4 text-sm whitespace-nowrap">Catégorie</TabsTrigger>
                     <TabsTrigger value="caracteristiques" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none h-full px-4 text-sm whitespace-nowrap">Caractéristiques</TabsTrigger>
@@ -768,6 +799,311 @@ export default function AdminProducts() {
                     />
                   </TabsContent>
 
+                  {/* Tab: Variantes */}
+                  <TabsContent value="variantes" className="mt-0 p-6 space-y-8 outline-none">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-medium">Groupes d'options</h3>
+                          <p className="text-sm text-muted-foreground">Ex: Couleur, Taille, Capacité...</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const opts = form.getValues('options') || [];
+                            form.setValue('options', [...opts, { name: '', position: opts.length, values: [] }]);
+                          }}
+                        >
+                          <Plus className="mr-2 h-4 w-4" /> Ajouter une option
+                        </Button>
+                      </div>
+
+                      {(form.watch('options') || []).map((opt, optIndex) => (
+                        <Card key={optIndex} className="p-4 relative">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-2 top-2 h-8 w-8 text-destructive"
+                            onClick={() => {
+                              const opts = [...(form.getValues('options') || [])];
+                              opts.splice(optIndex, 1);
+                              form.setValue('options', opts);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <FormField
+                              control={form.control}
+                              name={`options.${optIndex}.name`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Nom de l'option</FormLabel>
+                                  <FormControl><Input placeholder="Ex: Couleur" {...field} /></FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <div className="space-y-3 pl-4 border-l-2 border-muted">
+                            <div className="flex items-center justify-between">
+                              <FormLabel>Valeurs</FormLabel>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const opts = [...(form.getValues('options') || [])];
+                                  const tempId = -(Date.now() + Math.floor(Math.random() * 1000));
+                                  opts[optIndex].values = [...(opts[optIndex].values || []), { id: tempId, label: '', value: '', position: (opts[optIndex].values?.length || 0) }];
+                                  form.setValue('options', opts);
+                                }}
+                              >
+                                <Plus className="mr-2 h-3 w-3" /> Ajouter une valeur
+                              </Button>
+                            </div>
+
+                            {opt.values?.map((val, valIndex) => {
+                              const isColor = opt.name.toLowerCase() === 'couleur';
+                              return (
+                                <div key={valIndex} className="flex items-start gap-2">
+                                  <FormField
+                                    control={form.control}
+                                    name={`options.${optIndex}.values.${valIndex}.label`}
+                                    render={({ field }) => (
+                                      <FormItem className="flex-1">
+                                        <FormControl>
+                                          <Input placeholder="Label (Ex: Rouge)" {...field} onChange={e => {
+                                            field.onChange(e);
+                                            // Auto-fill value if empty
+                                            const currentVal = form.getValues(`options.${optIndex}.values.${valIndex}.value`);
+                                            if (!currentVal) {
+                                              form.setValue(`options.${optIndex}.values.${valIndex}.value`, e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
+                                            }
+                                          }} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name={`options.${optIndex}.values.${valIndex}.value`}
+                                    render={({ field }) => (
+                                      <FormItem className="flex-1 hidden md:block">
+                                        <FormControl><Input placeholder="Valeur interne (Ex: rouge)" {...field} /></FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  {isColor && (
+                                    <FormField
+                                      control={form.control}
+                                      name={`options.${optIndex}.values.${valIndex}.colorHex`}
+                                      render={({ field }) => (
+                                        <FormItem className="w-16">
+                                          <FormControl><Input type="color" className="p-1 h-9 cursor-pointer" {...field} value={field.value || '#000000'} /></FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  )}
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                                    onClick={() => {
+                                      const opts = [...(form.getValues('options') || [])];
+                                      const removedValueId = opts[optIndex].values[valIndex]?.id;
+                                      opts[optIndex].values.splice(valIndex, 1);
+                                      form.setValue('options', opts);
+                                      if (removedValueId !== undefined) {
+                                        const variants = (form.getValues('variants') || []).map((variant) => ({
+                                          ...variant,
+                                          optionValueIds: (variant.optionValueIds || []).filter((id) => id !== removedValueId),
+                                        }));
+                                        form.setValue('variants', variants);
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                            {!opt.values?.length && <p className="text-xs text-muted-foreground italic">Aucune valeur ajoutée.</p>}
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+
+                    <div className="space-y-4 pt-6 border-t border-border">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                          <h3 className="text-lg font-medium">Combinaisons (Variantes)</h3>
+                          <p className="text-sm text-muted-foreground">Créez uniquement les combinaisons que vous souhaitez vendre.</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const vars = form.getValues('variants') || [];
+                            form.setValue('variants', [...vars, {
+                              price: form.getValues('price') || 0,
+                              stock: 0,
+                              isActive: true,
+                              optionValueIds: [],
+                              sku: '',
+                              barcode: '',
+                              imageUrl: null,
+                            }]);
+                          }}
+                        >
+                          <Plus className="mr-2 h-4 w-4" /> Ajouter une variante
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4">
+                        {(form.watch('variants') || []).map((v, vIndex) => (
+                          <Card key={vIndex} className={cn("p-4 border", !v.isActive && "opacity-70 bg-muted/30")}>
+                            <div className="flex flex-wrap gap-4 items-start mb-4 pb-4 border-b border-border">
+                              <div className="flex-1 flex flex-wrap gap-2 min-w-[200px]">
+                                {(form.watch('options') || []).map((opt, oIdx) => {
+                                  const selectedValId = v.optionValueIds?.find(id => opt.values?.some(val => val.id === id));
+                                  return (
+                                    <div key={opt.id || oIdx} className="w-full sm:w-auto">
+                                      <Select
+                                        value={selectedValId ? selectedValId.toString() : undefined}
+                                        onValueChange={(val) => {
+                                          const vars = [...(form.getValues('variants') || [])];
+                                          const currentVar = { ...vars[vIndex] };
+                                          const oldValId = currentVar.optionValueIds?.find(id => opt.values?.some(v => v.id === id));
+                                          const newIds = (currentVar.optionValueIds || []).filter(id => id !== oldValId);
+                                          newIds.push(parseInt(val));
+                                          currentVar.optionValueIds = newIds;
+                                          vars[vIndex] = currentVar;
+                                          form.setValue('variants', vars);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs font-semibold bg-background">
+                                          <SelectValue placeholder={opt.name || `Option ${oIdx+1}`} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {opt.values?.map((val) => (
+                                            <SelectItem key={val.id} value={(val.id || 0).toString()}>{val.label}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <FormField
+                                  control={form.control}
+                                  name={`variants.${vIndex}.isActive`}
+                                  render={({ field }) => (
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                      <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                      <FormLabel className="text-xs">Actif</FormLabel>
+                                    </FormItem>
+                                  )}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground"
+                                  onClick={() => {
+                                    const vars = [...(form.getValues('variants') || [])];
+                                    const newVar = { ...vars[vIndex], id: undefined }; // copy without ID
+                                    vars.splice(vIndex + 1, 0, newVar);
+                                    form.setValue('variants', vars);
+                                  }}
+                                  title="Dupliquer"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={() => {
+                                    const vars = [...(form.getValues('variants') || [])];
+                                    vars.splice(vIndex, 1);
+                                    form.setValue('variants', vars);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                              <FormField control={form.control} name={`variants.${vIndex}.price`} render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">Prix (DA)</FormLabel>
+                                  <FormControl><Input type="number" className="h-8 text-sm" {...field} /></FormControl>
+                                </FormItem>
+                              )} />
+                              <FormField control={form.control} name={`variants.${vIndex}.comparePrice`} render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">Prix comp.</FormLabel>
+                                  <FormControl><Input type="number" className="h-8 text-sm" value={field.value || ''} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)} /></FormControl>
+                                </FormItem>
+                              )} />
+                              <FormField control={form.control} name={`variants.${vIndex}.stock`} render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">Stock</FormLabel>
+                                  <FormControl><Input type="number" className="h-8 text-sm" {...field} /></FormControl>
+                                </FormItem>
+                              )} />
+                              <FormField control={form.control} name={`variants.${vIndex}.sku`} render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">SKU</FormLabel>
+                                  <FormControl><Input className="h-8 text-sm" {...field} /></FormControl>
+                                </FormItem>
+                              )} />
+                              <FormField control={form.control} name={`variants.${vIndex}.barcode`} render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">Barcode</FormLabel>
+                                  <FormControl><Input className="h-8 text-sm" {...field} /></FormControl>
+                                </FormItem>
+                              )} />
+                            </div>
+                            <div className="mt-3">
+                              <FormField control={form.control} name={`variants.${vIndex}.imageUrl`} render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">Image spécifique (optionnel)</FormLabel>
+                                  <FormControl>
+                                    <MultiImageUpload
+                                      value={field.value ? [field.value] : []}
+                                      onChange={(urls) => field.onChange(urls[0] || null)}
+                                      maxImages={1}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )} />
+                            </div>
+                          </Card>
+                        ))}
+                        {!(form.watch('variants') || []).length && (
+                          <div className="text-center py-8 bg-muted/20 rounded-xl border border-dashed border-border">
+                            <p className="text-muted-foreground text-sm">Aucune variante créée. Le produit sera vendu comme produit simple.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </TabsContent>
+
                   {/* Tab: Publication */}
                   <TabsContent value="publication" className="mt-0 p-6 space-y-4 outline-none">
                     <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
@@ -829,7 +1165,7 @@ export default function AdminProducts() {
                   </TabsContent>
                 </div>
               </Tabs>
-              
+
               <div className="p-6 border-t border-border bg-background shrink-0 flex items-center justify-end gap-3">
                 <Button type="button" variant="outline" onClick={() => setIsSheetOpen(false)}>
                   Annuler

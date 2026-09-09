@@ -36,5 +36,4 @@ export interface Order {
   /** @nullable */
   notes?: string | null;
   createdAt: string;
-  updatedAt?: string;
 }

@@ -5,11 +5,19 @@
  * BOUKHATEM TELECOM - E-commerce API for phone repair equipment
  * OpenAPI spec version: 0.1.0
  */
+import type { OptionSnapshot } from './optionSnapshot';
 
 export interface OrderItem {
   productId: number;
+  /** @nullable */
+  variantId?: number | null;
   name: string;
   price: number;
+  /** @nullable */
+  comparePrice?: number | null;
+  /** @nullable */
+  sku?: string | null;
+  optionSnapshots?: OptionSnapshot[];
   quantity: number;
   images?: string[];
 }

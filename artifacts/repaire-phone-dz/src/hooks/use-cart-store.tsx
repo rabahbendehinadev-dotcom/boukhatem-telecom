@@ -13,10 +13,15 @@ const GUEST_CART_KEY = "repair_guest_cart"
 
 export interface GuestCartItem {
   productId: number
+  variantId: number | null
   quantity: number
   name: string
   price: number
   images: string[]
+  optionSnapshots?: any[]
+  sku?: string
+  barcode?: string
+  stock: number
 }
 
 function loadGuestItems(): GuestCartItem[] {
@@ -48,9 +53,9 @@ interface CartContextType {
   cart: ReturnType<typeof buildGuestCart> | any
   isLoading: boolean
   isGuest: boolean
-  addToCart: (productId: number, quantity?: number) => void
-  updateQuantity: (productId: number, quantity: number) => void
-  removeItem: (productId: number) => void
+  addToCart: (productId: number, quantity?: number, variantId?: number | null) => void
+  updateQuantity: (productId: number, quantity: number, variantId?: number | null) => void
+  removeItem: (productId: number, variantId?: number | null) => void
   clearCart: () => void
   itemCount: number
 }
@@ -97,10 +102,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clearMutation  = useClearCart()
 
   // ── addToCart — no auth guard; works for guests via localStorage ──────────
-  const addToCart = useCallback(async (productId: number, quantity = 1) => {
+  const addToCart = useCallback(async (productId: number, quantity = 1, variantId: number | null = null) => {
     if (isAuthenticated) {
       addMutation.mutate(
-        { data: { productId, quantity } },
+        { data: { productId, quantity, variantId } as any },
         {
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() })
@@ -117,16 +122,50 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (!res.ok) throw new Error("product fetch failed")
         const product = await res.json()
 
+        if (product.variants?.length > 0 && !variantId) {
+          toast.error("Veuillez sélectionner une option avant d'ajouter au panier.");
+          return;
+        }
+
+        let variant = null;
+        if (variantId) {
+          variant = product.variants?.find((v: any) => v.id === variantId);
+          if (!variant || !variant.isActive || variant.stock <= 0) {
+            toast.error("Cette variante est indisponible.");
+            return;
+          }
+        } else if (product.stock <= 0) {
+          toast.error("Ce produit est en rupture de stock.");
+          return;
+        }
+
+        const price = variant ? variant.price : (product.discountPrice ?? product.price);
+        const images = variant?.imageUrl ? [variant.imageUrl] : (Array.isArray(product.images) ? product.images : []);
+        const optionSnapshots = variant?.options || [];
+        const maxStock = variant ? variant.stock : product.stock;
+
         setGuestItems(prev => {
-          const existing = prev.find(i => i.productId === productId)
+          const existing = prev.find(i => i.productId === productId && i.variantId === variantId)
+          const newQty = existing ? Math.min(existing.quantity + quantity, maxStock) : Math.min(quantity, maxStock);
+
+          if (existing && existing.quantity >= maxStock) {
+            toast.error("Stock maximum atteint pour ce produit.");
+            return prev;
+          }
+
           const updated = existing
-            ? prev.map(i => i.productId === productId ? { ...i, quantity: i.quantity + quantity } : i)
+            ? prev.map(i => (i.productId === productId && i.variantId === variantId) ? { ...i, quantity: newQty, stock: maxStock } : i)
             : [...prev, {
                 productId,
-                quantity,
+                variantId,
+                quantity: newQty,
                 name: product.name,
-                price: product.discountPrice ?? product.price,
-                images: Array.isArray(product.images) ? product.images : [],
+                price,
+                images,
+                optionSnapshots,
+                sku: variant?.sku || product.sku,
+                barcode: variant?.barcode || product.barcode,
+                stock: maxStock,
               }]
           saveGuestItems(updated)
           return updated
@@ -136,18 +175,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
         toast.error("Impossible d'ajouter au panier.")
       }
     }
-  }, [addMutation, isAuthenticated, queryClient, toast])
+  }, [addMutation, isAuthenticated, queryClient])
 
   // ── removeItem ────────────────────────────────────────────────────────────
-  const removeItem = useCallback((productId: number) => {
+  const removeItem = useCallback((productId: number, variantId: number | null = null) => {
     if (isAuthenticated) {
       removeMutation.mutate(
-        { productId },
+        { productId, query: { variantId } } as any,
         { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() }) }
       )
     } else {
       setGuestItems(prev => {
-        const updated = prev.filter(i => i.productId !== productId)
+        const updated = prev.filter(i => !(i.productId === productId && i.variantId === variantId))
         saveGuestItems(updated)
         return updated
       })
@@ -155,16 +194,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [removeMutation, queryClient, isAuthenticated])
 
   // ── updateQuantity ────────────────────────────────────────────────────────
-  const updateQuantity = useCallback((productId: number, quantity: number) => {
-    if (quantity < 1) { removeItem(productId); return }
+  const updateQuantity = useCallback((productId: number, quantity: number, variantId: number | null = null) => {
+    if (quantity < 1) { removeItem(productId, variantId); return }
     if (isAuthenticated) {
       updateMutation.mutate(
-        { productId, data: { quantity } },
+        { productId, data: { quantity, variantId } as any },
         { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() }) }
       )
     } else {
       setGuestItems(prev => {
-        const updated = prev.map(i => i.productId === productId ? { ...i, quantity } : i)
+        const updated = prev.map(i => {
+          if (i.productId === productId && i.variantId === variantId) {
+            const allowedQty = Math.min(quantity, i.stock);
+            if (quantity > i.stock) toast.error("Stock maximum atteint.");
+            return { ...i, quantity: allowedQty };
+          }
+          return i;
+        })
         saveGuestItems(updated)
         return updated
       })

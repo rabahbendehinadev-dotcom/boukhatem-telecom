@@ -17,7 +17,7 @@ export default function Cart() {
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!couponCode.trim()) return;
-    
+
     try {
       await applyCoupon.mutateAsync({ data: { code: couponCode } });
       toast.success('Code promo appliqué avec succès');
@@ -61,10 +61,10 @@ export default function Cart() {
               <div className="col-span-2 text-center">Quantité</div>
               <div className="col-span-2 text-right">Total</div>
             </div>
-            
+
             <div className="divide-y divide-border">
               {cart.items.map((item: any) => (
-                <div key={item.productId} className="p-4 flex flex-col md:grid md:grid-cols-12 md:items-center gap-4 hover:bg-muted/10 transition-colors">
+                <div key={`${item.productId}-${item.variantId || 'base'}`} className="p-4 flex flex-col md:grid md:grid-cols-12 md:items-center gap-4 hover:bg-muted/10 transition-colors">
                   {/* Product Info */}
                   <div className="col-span-6 flex items-center gap-4">
                     <div className="w-20 h-20 bg-muted/30 rounded-lg p-2 flex items-center justify-center shrink-0 border border-border/50">
@@ -74,22 +74,31 @@ export default function Cart() {
                       <Link href={`/products/${item.productId}`} className="font-bold text-sm md:text-base text-foreground hover:text-primary transition-colors line-clamp-2 mb-1">
                         {item.name}
                       </Link>
-                      <button 
-                        onClick={() => removeItem(item.productId)}
-                        className="text-xs text-destructive hover:underline flex items-center gap-1 mt-2"
+                      {item.optionSnapshots && item.optionSnapshots.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1 mb-1">
+                          {item.optionSnapshots.map((opt: any, index: number) => (
+                            <span key={`${opt.optionId ?? opt.name}-${opt.valueId ?? opt.value}-${index}`} className="inline-flex items-center rounded-sm bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                              {opt.optionName ?? opt.name}: {opt.label ?? opt.value}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => removeItem(item.productId, item.variantId)}
+                        className="text-xs text-destructive hover:underline flex items-center gap-1 mt-1"
                       >
                         <Trash2 className="h-3 w-3" /> Supprimer
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* Mobile price and qty layout */}
                   <div className="flex items-center justify-between md:hidden mt-2">
                     <div className="font-extrabold text-primary">{item.price.toLocaleString('fr-DZ')} DA</div>
                     <div className="flex items-center border border-input rounded-md h-9">
-                      <button onClick={() => updateQuantity(item.productId, Math.max(1, item.quantity - 1))} className="w-8 h-full flex items-center justify-center text-muted-foreground hover:bg-muted"><Minus className="h-3 w-3" /></button>
+                      <button onClick={() => updateQuantity(item.productId, Math.max(1, item.quantity - 1), item.variantId)} className="w-8 h-full flex items-center justify-center text-muted-foreground hover:bg-muted"><Minus className="h-3 w-3" /></button>
                       <div className="w-8 text-center text-sm font-bold">{item.quantity}</div>
-                      <button onClick={() => updateQuantity(item.productId, item.quantity + 1)} className="w-8 h-full flex items-center justify-center text-muted-foreground hover:bg-muted"><Plus className="h-3 w-3" /></button>
+                      <button onClick={() => updateQuantity(item.productId, item.quantity + 1, item.variantId)} className="w-8 h-full flex items-center justify-center text-muted-foreground hover:bg-muted"><Plus className="h-3 w-3" /></button>
                     </div>
                   </div>
 
@@ -97,12 +106,12 @@ export default function Cart() {
                   <div className="hidden md:block col-span-2 text-center font-bold text-foreground">
                     {item.price.toLocaleString('fr-DZ')} DA
                   </div>
-                  
+
                   <div className="hidden md:flex col-span-2 justify-center">
                     <div className="flex items-center border border-input rounded-md h-10 w-24">
-                      <button onClick={() => updateQuantity(item.productId, Math.max(1, item.quantity - 1))} className="flex-1 h-full flex items-center justify-center text-muted-foreground hover:bg-muted"><Minus className="h-3 w-3" /></button>
+                      <button onClick={() => updateQuantity(item.productId, Math.max(1, item.quantity - 1), item.variantId)} className="flex-1 h-full flex items-center justify-center text-muted-foreground hover:bg-muted"><Minus className="h-3 w-3" /></button>
                       <div className="w-8 text-center text-sm font-bold">{item.quantity}</div>
-                      <button onClick={() => updateQuantity(item.productId, item.quantity + 1)} className="flex-1 h-full flex items-center justify-center text-muted-foreground hover:bg-muted"><Plus className="h-3 w-3" /></button>
+                      <button onClick={() => updateQuantity(item.productId, item.quantity + 1, item.variantId)} className="flex-1 h-full flex items-center justify-center text-muted-foreground hover:bg-muted"><Plus className="h-3 w-3" /></button>
                     </div>
                   </div>
 
@@ -112,7 +121,7 @@ export default function Cart() {
                 </div>
               ))}
             </div>
-            
+
             <div className="p-4 bg-muted/10 border-t border-border flex justify-between items-center">
               <Button variant="ghost" className="text-muted-foreground hover:text-destructive text-sm" onClick={clearCart}>
                 <Trash2 className="h-4 w-4 mr-2" /> Vider le panier
@@ -129,7 +138,7 @@ export default function Cart() {
           <Card className="border-border shadow-md">
             <CardContent className="p-6">
               <h3 className="font-extrabold text-lg mb-6 tracking-tight">Résumé de la commande</h3>
-              
+
               <div className="space-y-4 text-sm mb-6">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Sous-total</span>
@@ -152,7 +161,7 @@ export default function Cart() {
                   <span className="font-bold">{cart.shipping === 0 ? 'Confirmés par téléphone' : `${cart.shipping.toLocaleString('fr-DZ')} DA`}</span>
                 </div>
               </div>
-              
+
               <div className="border-t border-border pt-4 mb-6">
                 <div className="flex justify-between items-end">
                   <span className="font-bold text-foreground">Total à payer</span>
@@ -161,7 +170,7 @@ export default function Cart() {
                 <p className="text-[10px] text-muted-foreground text-right mt-1">Taxes incluses</p>
               </div>
 
-              <Button 
+              <Button
                 className="w-full h-14 text-base font-bold bg-secondary hover:bg-secondary/90 text-white shadow-lg shadow-secondary/20 mb-4"
                 onClick={() => setLocation('/checkout')}
               >
@@ -173,8 +182,8 @@ export default function Cart() {
                 <form onSubmit={handleApplyCoupon} className="flex gap-2">
                   <div className="relative flex-1">
                     <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      placeholder="Code promo" 
+                    <Input
+                      placeholder="Code promo"
                       value={couponCode}
                       onChange={(e) => setCouponCode(e.target.value)}
                       className="pl-9 h-11 bg-muted/30"
@@ -187,7 +196,7 @@ export default function Cart() {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Trust badges */}
           <div className="bg-muted/30 border border-border rounded-xl p-4 space-y-3">
             <div className="flex items-center gap-3 text-sm text-foreground/80">

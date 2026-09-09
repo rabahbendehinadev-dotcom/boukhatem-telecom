@@ -843,6 +843,51 @@ paths:
               schema:
                 $ref: "#/components/schemas/Order"
 
+  /orders/guest:
+    post:
+      operationId: createGuestOrder
+      tags: [orders]
+      summary: Place a guest order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuestOrderInput"
+      responses:
+        "201":
+          description: Created; retain guestAccessToken for payment proof.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuestOrder"
+
+  /orders/guest/{id}/payment-proof:
+    patch:
+      operationId: submitGuestPaymentProof
+      tags: [orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+        - name: x-guest-access-token
+          in: header
+          required: false
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuestPaymentProofInput"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+
   /orders/{id}:
     get:
       operationId: getOrder
@@ -1337,6 +1382,8 @@ components:
           type: number
         createdAt:
           type: string
+        updatedAt:
+          type: string
 
     UserUpdate:
       type: object
@@ -1684,18 +1731,45 @@ components:
           type: string
 
     # ── CART ─────────────────────────────────────────────────────────────────
+    OptionSnapshot:
+      type: object
+      additionalProperties: false
+      required: [optionId, optionName, valueId, label, value]
+      properties:
+        optionId:
+          type: number
+        optionName:
+          type: string
+        valueId:
+          type: number
+        label:
+          type: string
+        value:
+          type: string
+        colorHex:
+          type: ["string", "null"]
+
     CartItem:
       type: object
       required: [productId, name, price, quantity, images]
       properties:
         productId:
           type: number
+        variantId:
+          type: ["number", "null"]
+          description: Variant identity; null is the legacy product-only line.
         name:
           type: string
         price:
           type: number
         comparePrice:
           type: ["number", "null"]
+        sku:
+          type: ["string", "null"]
+        optionSnapshots:
+          type: array
+          items:
+            $ref: "#/components/schemas/OptionSnapshot"
         quantity:
           type: number
         images:
@@ -1734,6 +1808,8 @@ components:
       properties:
         productId:
           type: number
+        variantId:
+          type: ["number", "null"]
         quantity:
           type: number
 
@@ -1741,6 +1817,8 @@ components:
       type: object
       required: [quantity]
       properties:
+        variantId:
+          type: ["number", "null"]
         quantity:
           type: number
 
@@ -1758,10 +1836,20 @@ components:
       properties:
         productId:
           type: number
+        variantId:
+          type: ["number", "null"]
         name:
           type: string
         price:
           type: number
+        comparePrice:
+          type: ["number", "null"]
+        sku:
+          type: ["string", "null"]
+        optionSnapshots:
+          type: array
+          items:
+            $ref: "#/components/schemas/OptionSnapshot"
         quantity:
           type: number
         images:
@@ -1820,8 +1908,38 @@ components:
           type: ["string", "null"]
         createdAt:
           type: string
-        updatedAt:
+
+    GuestOrder:
+      allOf:
+        - $ref: "#/components/schemas/Order"
+        - type: object
+          required: [guestAccessToken]
+          properties:
+            guestAccessToken:
+              type: string
+
+    GuestPaymentProofInput:
+      type: object
+      additionalProperties: false
+      required: [paymentProofUrl, guestAccessToken]
+      properties:
+        paymentProofUrl:
           type: string
+        guestAccessToken:
+          type: string
+
+    GuestOrderInput:
+      allOf:
+        - $ref: "#/components/schemas/OrderInput"
+        - type: object
+          properties:
+            idempotencyKey:
+              type: string
+              pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CartItemInput"
 
     OrderInput:
       type: object

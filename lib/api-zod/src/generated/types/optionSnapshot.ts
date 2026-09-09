@@ -6,9 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CartItemInput {
-  productId: number;
+export interface OptionSnapshot {
+  optionId: number;
+  optionName: string;
+  valueId: number;
+  label: string;
+  value: string;
   /** @nullable */
-  variantId?: number | null;
-  quantity: number;
+  colorHex?: string | null;
 }

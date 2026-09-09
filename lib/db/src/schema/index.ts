@@ -2,6 +2,7 @@ export * from "./users";
 export * from "./categories";
 export * from "./brands";
 export * from "./products";
+export * from "./variants";
 export * from "./reviews";
 export * from "./orders";
 export * from "./coupons";

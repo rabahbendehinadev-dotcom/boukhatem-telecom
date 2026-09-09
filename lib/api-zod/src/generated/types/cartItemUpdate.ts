@@ -7,5 +7,7 @@
  */
 
 export interface CartItemUpdate {
+  /** @nullable */
+  variantId?: number | null;
   quantity: number;
 }

@@ -1,10 +1,16 @@
 import { Router, type IRouter } from "express";
+import { randomUUID } from "node:crypto";
 import { eq, desc, and, sql } from "drizzle-orm";
-import { db, ordersTable, cartTable, usersTable, shippingRatesTable } from "@workspace/db";
+import { db, ordersTable, cartTable, usersTable, shippingRatesTable, productsTable, productVariantsTable } from "@workspace/db";
 import { requireAuth } from "../lib/auth";
+import { resolveCatalogItem } from "../lib/variant-catalog";
 import { requireAdminSession, requirePermission, logActivity, getIp } from "../lib/admin-auth";
 
 const router: IRouter = Router();
+
+function isCanonicalUuid(value: unknown): value is string {
+  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
 
 /**
  * Full column set — requires migrations 0003 + 0004 on the target DB.
@@ -13,6 +19,7 @@ const router: IRouter = Router();
 const baseOrderCols = {
   id: ordersTable.id,
   idempotencyKey: ordersTable.idempotencyKey,
+  guestAccessToken: ordersTable.guestAccessToken,
   userId: ordersTable.userId,
   status: ordersTable.status,
   paymentMethod: ordersTable.paymentMethod,
@@ -92,6 +99,40 @@ function formatOrder(o: any) {
   };
 }
 
+async function canonicalizeItems(rawItems: any[], executor: any = db) {
+  const result: any[] = [];
+  for (const raw of rawItems) {
+    const productId = Number(raw.productId);
+    const variantId = raw.variantId == null ? null : Number(raw.variantId);
+    const quantity = Number(raw.quantity);
+    if (!Number.isInteger(productId) || !Number.isInteger(quantity) || quantity <= 0) throw new Error("Article invalide");
+    const c = await resolveCatalogItem(productId, variantId, executor);
+    if (!c || quantity > c.stock) throw new Error(`Stock insuffisant pour ${c?.label || "un article"}`);
+    result.push({
+      productId, variantId, name: c.label, price: c.price, comparePrice: c.comparePrice, quantity,
+      images: c.imageUrl ? [c.imageUrl] : [], imageUrl: c.imageUrl, stock: c.stock, sku: c.sku, barcode: c.barcode,
+      optionSnapshots: c.optionSnapshots, variantOptions: c.optionSnapshots,
+    });
+  }
+  return result;
+}
+
+async function decrementStock(executor: any, items: any[]) {
+  for (const item of items) {
+    const table = item.variantId == null ? productsTable : productVariantsTable;
+    const idColumn = item.variantId == null ? productsTable.id : productVariantsTable.id;
+    const id = item.variantId == null ? item.productId : item.variantId;
+    const activeCondition = item.variantId == null ? undefined : eq(productVariantsTable.isActive, true);
+    const updated = await executor.update(table).set({ stock: sql`${table.stock} - ${item.quantity}` }).where(and(eq(idColumn, id), activeCondition, sql`${table.stock} >= ${item.quantity}`)).returning({ id: idColumn });
+    if (!updated.length) throw new Error(`Stock insuffisant pour ${item.name}`);
+  }
+}
+
+async function lockIdempotency(executor: any, scope: string, key?: string | null) {
+  if (!key) return;
+  await executor.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${scope}), hashtext(${key}))`);
+}
+
 /**
  * Resolves the authoritative delivery price from PostgreSQL.
  * The browser never supplies or controls the amount saved on the order.
@@ -141,36 +182,71 @@ async function computeShipping(
 // ── Guest order (no auth required) ──────────────────────────────────────────
 router.post("/orders/guest", async (req, res): Promise<void> => {
   const { items, shippingAddress, notes, paymentMethod, idempotencyKey, deliveryType, preferredOfficeName } = req.body;
+  if (idempotencyKey != null && !isCanonicalUuid(idempotencyKey)) {
+    res.status(400).json({ error: "idempotencyKey doit être un UUID valide" }); return;
+  }
+  if (idempotencyKey) {
+    const [existing] = await db.select(baseOrderCols).from(ordersTable)
+      .where(and(eq(ordersTable.idempotencyKey, idempotencyKey), sql`${ordersTable.userId} IS NULL`)).limit(1)
+      .catch((err: any) => isMissingColumnError(err) ? db.select(legacyOrderCols).from(ordersTable).where(and(eq(ordersTable.idempotencyKey, idempotencyKey), sql`${ordersTable.userId} IS NULL`)).limit(1) : Promise.reject(err));
+    if (existing) { res.status(200).json({ ...formatOrder(existing), guestAccessToken: (existing as any).guestAccessToken || null }); return; }
+  }
   if (!shippingAddress || !Array.isArray(items) || items.length === 0) {
     res.status(400).json({ error: "items et shippingAddress requis" }); return;
   }
   const validPaymentMethods = ["cash_on_delivery", "bank_transfer", "cib_edahabia"];
   const resolvedPaymentMethod = validPaymentMethods.includes(paymentMethod) ? paymentMethod : "cash_on_delivery";
-  const subtotal = items.reduce((s: number, i: any) => s + (Number(i.price) * Number(i.quantity)), 0);
   const { shipping, meta: shippingMeta, error: shippingError } = await computeShipping(deliveryType, shippingAddress, preferredOfficeName);
   if (shippingError) { res.status(400).json({ error: shippingError }); return; }
-  const total = subtotal + shipping;
   const initialPaymentStatus = resolvedPaymentMethod === "cash_on_delivery" ? "pending" : "awaiting_confirmation";
   const baseValues = {
     idempotencyKey: idempotencyKey || null,
+    guestAccessToken: randomUUID(),
     userId: null as null,
     status: "pending" as const,
     paymentMethod: resolvedPaymentMethod,
     paymentStatus: initialPaymentStatus,
-    subtotal: String(subtotal), discount: "0",
-    couponCode: null as null, shipping: String(shipping), total: String(total),
-    shippingAddress: shippingAddress as any, items: items as any, notes: notes || null,
+    discount: "0", couponCode: null as null, shipping: String(shipping),
+    shippingAddress: shippingAddress as any, notes: notes || null,
   };
   try {
-    const [order] = await db.insert(ordersTable).values({ ...baseValues, ...shippingMeta as any })
-      .returning(baseOrderCols);
-    res.status(201).json(formatOrder(order));
+    const [order] = await db.transaction(async (tx) => {
+      await lockIdempotency(tx, "guest-order", idempotencyKey);
+      if (idempotencyKey) {
+        const [existing] = await tx.select(baseOrderCols).from(ordersTable).where(eq(ordersTable.idempotencyKey, idempotencyKey)).limit(1);
+        if (existing) return [existing];
+      }
+      const txItems = await canonicalizeItems(items, tx);
+      const txSubtotal = txItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      await decrementStock(tx, txItems);
+      return tx.insert(ordersTable).values({ ...baseValues, subtotal: String(txSubtotal), total: String(txSubtotal + shipping), items: txItems as any, ...shippingMeta as any }).returning(baseOrderCols);
+    });
+    res.status(201).json({ ...formatOrder(order), guestAccessToken: (order as any).guestAccessToken || baseValues.guestAccessToken });
   } catch (err: any) {
+    if (err?.code === "23505" && idempotencyKey) {
+      const [existing] = await db.select(baseOrderCols).from(ordersTable)
+        .where(and(eq(ordersTable.idempotencyKey, idempotencyKey), sql`${ordersTable.userId} IS NULL`)).limit(1);
+      if (existing) { res.status(200).json({ ...formatOrder(existing), guestAccessToken: existing.guestAccessToken }); return; }
+    }
     if (isMissingColumnError(err)) {
-      // Production DB missing migrations 0003/0004 — insert without shipping metadata
-      const [order] = await db.insert(ordersTable).values(baseValues).returning(legacyOrderCols);
-      res.status(201).json(formatOrder(order));
+      // Legacy schema fallback still keeps stock decrement and idempotency atomic.
+      const [order] = await db.transaction(async (tx) => {
+        await lockIdempotency(tx, "guest-order", idempotencyKey);
+        if (idempotencyKey) {
+          const [existing] = await tx.select(legacyOrderCols).from(ordersTable).where(eq(ordersTable.idempotencyKey, idempotencyKey)).limit(1);
+          if (existing) return [existing];
+        }
+        const txItems = await canonicalizeItems(items, tx);
+        const txSubtotal = txItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        await decrementStock(tx, txItems);
+        const { guestAccessToken: _token, ...legacyValues } = baseValues;
+        return tx.insert(ordersTable).values({ ...legacyValues, subtotal: String(txSubtotal), total: String(txSubtotal + shipping), items: txItems as any }).returning(legacyOrderCols);
+      });
+    res.status(201).json({ ...formatOrder(order), guestAccessToken: (order as any).guestAccessToken || baseValues.guestAccessToken });
       return;
+    }
+    if (err?.message === "Article invalide" || String(err?.message || "").startsWith("Stock insuffisant")) {
+      res.status(400).json({ error: err.message }); return;
     }
     console.error("[guest order] DB error:", err?.code, err?.detail ?? err?.message ?? err);
     res.status(500).json({ error: "Erreur lors de la création de la commande. Veuillez réessayer." });
@@ -180,11 +256,13 @@ router.post("/orders/guest", async (req, res): Promise<void> => {
 // Guest: submit payment proof by order ID (no account needed)
 router.patch("/orders/guest/:id/payment-proof", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id as string, 10);
-  const { paymentProofUrl } = req.body;
+  const { paymentProofUrl, guestAccessToken } = req.body;
   if (!paymentProofUrl) { res.status(400).json({ error: "paymentProofUrl requis" }); return; }
   const [order] = await db.select(baseOrderCols).from(ordersTable).where(eq(ordersTable.id, id));
   if (!order) { res.status(404).json({ error: "Commande non trouvée" }); return; }
   if (order.userId !== null) { res.status(403).json({ error: "Utilisez l'endpoint authentifié" }); return; }
+  const suppliedToken = String(guestAccessToken || req.header("x-guest-access-token") || "");
+  if (!order.guestAccessToken || suppliedToken !== order.guestAccessToken) { res.status(403).json({ error: "Jeton d'accès invité invalide" }); return; }
   const [updated] = await db.update(ordersTable)
     .set({ paymentProofUrl, paymentStatus: "awaiting_confirmation" })
     .where(eq(ordersTable.id, id)).returning(baseOrderCols);
@@ -200,20 +278,19 @@ router.get("/orders", requireAuth, async (req, res): Promise<void> => {
 router.post("/orders", requireAuth, async (req, res): Promise<void> => {
   const userId = (req as any).userId;
   const { shippingAddress, notes, paymentMethod, idempotencyKey, deliveryType, preferredOfficeName } = req.body;
+  if (idempotencyKey) {
+    const [existing] = await db.select(baseOrderCols).from(ordersTable)
+      .where(and(eq(ordersTable.userId, userId), eq(ordersTable.idempotencyKey, idempotencyKey))).limit(1)
+      .catch((err: any) => isMissingColumnError(err) ? db.select(legacyOrderCols).from(ordersTable).where(and(eq(ordersTable.userId, userId), eq(ordersTable.idempotencyKey, idempotencyKey))).limit(1) : Promise.reject(err));
+    if (existing) { res.status(200).json(formatOrder(existing)); return; }
+  }
   if (!shippingAddress) { res.status(400).json({ error: "shippingAddress requis" }); return; }
 
   const validPaymentMethods = ["cash_on_delivery", "bank_transfer", "cib_edahabia"];
   const resolvedPaymentMethod = validPaymentMethods.includes(paymentMethod) ? paymentMethod : "cash_on_delivery";
 
-  const [cart] = await db.select().from(cartTable).where(eq(cartTable.userId, userId));
-  if (!cart || !Array.isArray(cart.items) || (cart.items as any[]).length === 0) {
-    res.status(400).json({ error: "Panier vide" }); return;
-  }
-  const items = cart.items as any[];
-  const subtotal = items.reduce((s: number, i: any) => s + i.price * i.quantity, 0);
   const { shipping, meta: shippingMeta, error: shippingError } = await computeShipping(deliveryType, shippingAddress, preferredOfficeName);
   if (shippingError) { res.status(400).json({ error: shippingError }); return; }
-  const total = subtotal + shipping;
 
   // Payment status: bank_transfer starts as "awaiting_confirmation", others as "pending"
   const initialPaymentStatus = resolvedPaymentMethod === "cash_on_delivery" ? "pending" : "awaiting_confirmation";
@@ -224,47 +301,59 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
     status: "pending" as const,
     paymentMethod: resolvedPaymentMethod,
     paymentStatus: initialPaymentStatus,
-    subtotal: String(subtotal), discount: "0",
-    couponCode: (cart.couponCode as string) || null, shipping: String(shipping), total: String(total),
-    shippingAddress: shippingAddress as any, items: items as any, notes: notes || null,
-  };
-
-  // Atomic idempotency: INSERT ... ON CONFLICT DO NOTHING.
-  // If the insert is skipped (duplicate key), the returning array is empty — we then fetch
-  // the already-existing order. This is race-safe: concurrent retries both resolve to the
-  // same row rather than one crashing with a unique-constraint error.
-  const doAuthInsert = async (withMeta: boolean) => {
-    const values = withMeta ? { ...authBaseValues, ...shippingMeta as any } : authBaseValues;
-    const cols = withMeta ? baseOrderCols : legacyOrderCols;
-    return db.insert(ordersTable).values(values).onConflictDoNothing().returning(cols);
+    discount: "0", shipping: String(shipping),
+    shippingAddress: shippingAddress as any, notes: notes || null,
   };
 
   try {
-    let result = await doAuthInsert(true).catch(async (err: any) => {
-      if (isMissingColumnError(err)) return doAuthInsert(false);
+    let result: any[];
+    // The stock decrements, order insert, and cart deletion share one transaction.
+    // Idempotency is checked before decrementing so retries cannot consume stock twice.
+    result = await db.transaction(async (tx) => {
+      await lockIdempotency(tx, `auth-order:${userId}`, idempotencyKey);
+      const [already] = idempotencyKey ? await tx.select(baseOrderCols).from(ordersTable)
+        .where(and(eq(ordersTable.userId, userId), eq(ordersTable.idempotencyKey, idempotencyKey))).limit(1) : [];
+      if (already) return [already];
+      const [cart] = await tx.select().from(cartTable).where(eq(cartTable.userId, userId));
+      if (!cart || !Array.isArray(cart.items) || (cart.items as any[]).length === 0) throw new Error("Panier vide");
+      const items = cart.items as any[];
+      const txItems = await canonicalizeItems(items, tx);
+      const txSubtotal = txItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      await decrementStock(tx, txItems);
+      const inserted = await tx.insert(ordersTable).values({ ...authBaseValues, couponCode: (cart.couponCode as string) || null, subtotal: String(txSubtotal), total: String(txSubtotal + shipping), items: txItems as any, ...shippingMeta as any }).returning(baseOrderCols);
+      await tx.delete(cartTable).where(eq(cartTable.userId, userId));
+      return inserted;
+    }).catch(async (err: any) => {
+      if (isMissingColumnError(err)) {
+        return db.transaction(async (tx) => {
+          await lockIdempotency(tx, `auth-order:${userId}`, idempotencyKey);
+          const [already] = idempotencyKey ? await tx.select(legacyOrderCols).from(ordersTable).where(and(eq(ordersTable.userId, userId), eq(ordersTable.idempotencyKey, idempotencyKey))).limit(1) : [];
+          if (already) return [already];
+          const [cart] = await tx.select().from(cartTable).where(eq(cartTable.userId, userId));
+          if (!cart || !Array.isArray(cart.items) || (cart.items as any[]).length === 0) throw new Error("Panier vide");
+          const items = cart.items as any[];
+          const txItems = await canonicalizeItems(items, tx);
+          const txSubtotal = txItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+          await decrementStock(tx, txItems);
+          const inserted = await tx.insert(ordersTable).values({ ...authBaseValues, couponCode: (cart.couponCode as string) || null, subtotal: String(txSubtotal), total: String(txSubtotal + shipping), items: txItems as any }).returning(legacyOrderCols);
+          await tx.delete(cartTable).where(eq(cartTable.userId, userId));
+          return inserted;
+        });
+      }
       throw err;
     });
     const [order] = result;
 
-    if (!order) {
-      // Duplicate request — idempotencyKey already used; return the existing order
-      const selectCols = baseOrderCols;
-      let [existing] = await db.select(selectCols).from(ordersTable)
-        .where(and(eq(ordersTable.userId, userId), eq(ordersTable.idempotencyKey, idempotencyKey)))
-        .catch(async (err: any) => {
-          if (isMissingColumnError(err))
-            return db.select(legacyOrderCols).from(ordersTable)
-              .where(and(eq(ordersTable.userId, userId), eq(ordersTable.idempotencyKey, idempotencyKey)));
-          throw err;
-        }) as any[];
-      if (!existing) { res.status(500).json({ error: "Erreur idempotence" }); return; }
-      res.status(200).json(formatOrder(existing));
-      return;
-    }
-
-    await db.delete(cartTable).where(eq(cartTable.userId, userId));
     res.status(201).json(formatOrder(order));
   } catch (err: any) {
+    if (err?.code === "23505" && idempotencyKey) {
+      const [existing] = await db.select(baseOrderCols).from(ordersTable)
+        .where(and(eq(ordersTable.userId, userId), eq(ordersTable.idempotencyKey, idempotencyKey))).limit(1);
+      if (existing) { res.status(200).json(formatOrder(existing)); return; }
+    }
+    if (err?.message === "Panier vide" || err?.message === "Article invalide" || String(err?.message || "").startsWith("Stock insuffisant")) {
+      res.status(400).json({ error: err.message }); return;
+    }
     console.error("[auth order] DB error:", err?.code, err?.detail ?? err?.message ?? err);
     res.status(500).json({ error: "Erreur lors de la création de la commande. Veuillez réessayer." });
   }

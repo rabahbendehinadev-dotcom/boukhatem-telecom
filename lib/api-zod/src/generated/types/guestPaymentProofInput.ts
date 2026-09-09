@@ -6,9 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CartItemInput {
-  productId: number;
-  /** @nullable */
-  variantId?: number | null;
-  quantity: number;
+export interface GuestPaymentProofInput {
+  paymentProofUrl: string;
+  guestAccessToken: string;
 }

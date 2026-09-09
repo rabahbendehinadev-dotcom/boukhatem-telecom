@@ -18,4 +18,5 @@ export interface User {
   totalOrders?: number;
   totalSpent?: number;
   createdAt: string;
+  updatedAt?: string;
 }
