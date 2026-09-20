@@ -15,6 +15,13 @@
       "when": 1785704909914,
       "tag": "0005_product_variants",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790000000000,
+      "tag": "0006_variant_fk_cascades",
+      "breakpoints": true
     }
   ]
 }

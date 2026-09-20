@@ -41,7 +41,7 @@ export const productOptionValuesTable = pgTable("product_option_values", {
   productValueUnique: unique("product_option_values_product_id_id_unique").on(table.id, table.productId),
   optionIndex: index("product_option_values_option_id_idx").on(table.optionId),
   productIndex: index("product_option_values_product_id_idx").on(table.productId),
-  optionProductFk: foreignKey({ columns: [table.optionId, table.productId], foreignColumns: [productOptionsTable.id, productOptionsTable.productId], name: "product_option_values_option_product_fk" }),
+  optionProductFk: foreignKey({ columns: [table.optionId, table.productId], foreignColumns: [productOptionsTable.id, productOptionsTable.productId], name: "product_option_values_option_product_fk" }).onDelete("cascade"),
 }));
 
 export const productVariantsTable = pgTable("product_variants", {
@@ -73,8 +73,8 @@ export const productVariantValuesTable = pgTable("product_variant_values", {
   variantValueUnique: unique("product_variant_values_variant_value_unique").on(table.variantId, table.optionValueId),
   variantIndex: index("product_variant_values_variant_id_idx").on(table.variantId),
   valueIndex: index("product_variant_values_option_value_id_idx").on(table.optionValueId),
-  variantProductFk: foreignKey({ columns: [table.variantId, table.productId], foreignColumns: [productVariantsTable.id, productVariantsTable.productId], name: "product_variant_values_variant_product_fk" }),
-  valueProductFk: foreignKey({ columns: [table.optionValueId, table.productId], foreignColumns: [productOptionValuesTable.id, productOptionValuesTable.productId], name: "product_variant_values_value_product_fk" }),
+  variantProductFk: foreignKey({ columns: [table.variantId, table.productId], foreignColumns: [productVariantsTable.id, productVariantsTable.productId], name: "product_variant_values_variant_product_fk" }).onDelete("cascade"),
+  valueProductFk: foreignKey({ columns: [table.optionValueId, table.productId], foreignColumns: [productOptionValuesTable.id, productOptionValuesTable.productId], name: "product_variant_values_value_product_fk" }).onDelete("cascade"),
 }));
 
 export const insertProductOptionSchema = createInsertSchema(productOptionsTable).omit({ id: true, createdAt: true, updatedAt: true });

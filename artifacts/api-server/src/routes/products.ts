@@ -80,7 +80,11 @@ async function replaceVariantStructure(tx: any, productId: number, input: any) {
     }
   }
   const signatures = new Set<string>();
+  // Delete join rows explicitly before their parents. Some existing databases
+  // were created with the composite ownership FKs lacking ON DELETE CASCADE.
+  await tx.delete(productVariantValuesTable).where(eq(productVariantValuesTable.productId, productId));
   await tx.delete(productVariantsTable).where(eq(productVariantsTable.productId, productId));
+  await tx.delete(productOptionValuesTable).where(eq(productOptionValuesTable.productId, productId));
   await tx.delete(productOptionsTable).where(eq(productOptionsTable.productId, productId));
   for (const [optionIndex, option] of optionsInput.entries()) {
     const [created] = await tx.insert(productOptionsTable).values({ productId, name: String(option.name), position: option.position ?? optionIndex }).returning();
@@ -286,7 +290,13 @@ router.patch("/products/:id", requireAdminSession, requirePermission("manage_pro
 
 router.delete("/products/:id", requireAdminSession, requirePermission("manage_products"), async (req, res): Promise<void> => {
   const id = parseInt(req.params.id as string, 10);
-  await db.delete(productsTable).where(eq(productsTable.id, id));
+  await db.transaction(async (tx) => {
+    await tx.delete(productVariantValuesTable).where(eq(productVariantValuesTable.productId, id));
+    await tx.delete(productVariantsTable).where(eq(productVariantsTable.productId, id));
+    await tx.delete(productOptionValuesTable).where(eq(productOptionValuesTable.productId, id));
+    await tx.delete(productOptionsTable).where(eq(productOptionsTable.productId, id));
+    await tx.delete(productsTable).where(eq(productsTable.id, id));
+  });
   res.json({ message: "Produit supprimé" });
 });
 
